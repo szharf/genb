@@ -1,0 +1,9 @@
+[submodule "gen-b"]
+	path = gen-b
+	url = https://gitee.com/kdanotadc/gen-b.git
+[submodule "bank-agent-project/bank-agent-runtime"]
+	path = bank-agent-project/bank-agent-runtime
+	url = https://github.com/szharf/bank-agent-runtime.git
+[submodule "bank-agent-project/bank-agent-cli"]
+	path = bank-agent-project/bank-agent-cli
+	url = https://github.com/szharf/bank-agent-cli.git

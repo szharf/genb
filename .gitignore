@@ -1,0 +1,22 @@
+# Runtime artifacts
+/logs/
+/deploy-artifacts/
+/agent-builds/
+/agent-docker-contexts/
+/agent-docker-images/
+/agent-intake/
+
+# Local caches
+/.npm-cache/
+/.agents/
+/.trae/
+
+# Generated screenshots / temporary exports
+/*.png
+/*_response-*.json
+/70旅程agent_extracted.txt
+/agent_business_categories_from_pdf.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
