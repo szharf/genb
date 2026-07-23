@@ -1,0 +1,137 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GenB Runtime System Inference Interface",
+    "version": "1.0.0"
+  },
+  "servers": [{"url": "/api/v1/runtime-system"}],
+  "paths": {
+    "/inference": {
+      "post": {
+        "operationId": "infer",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/RequestId"}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {"schema": {"$ref": "#/components/schemas/InferenceRequest"}}
+          }
+        },
+        "responses": {
+          "200": {"description": "Inference completed"},
+          "401": {"$ref": "#/components/responses/Problem"},
+          "403": {"$ref": "#/components/responses/Problem"},
+          "422": {"$ref": "#/components/responses/Problem"}
+        }
+      }
+    },
+    "/inference:stream": {
+      "post": {
+        "operationId": "streamInference",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/RequestId"}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {"schema": {"$ref": "#/components/schemas/InferenceRequest"}}
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE response lifecycle",
+            "content": {"text/event-stream": {"schema": {"type": "string"}}}
+          }
+        }
+      }
+    },
+    "/embeddings": {
+      "post": {
+        "operationId": "embed",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/RequestId"}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {"schema": {"$ref": "#/components/schemas/EmbeddingRequest"}}
+          }
+        },
+        "responses": {
+          "200": {"description": "Embeddings created"},
+          "502": {"$ref": "#/components/responses/Problem"}
+        }
+      }
+    },
+    "/models": {
+      "get": {
+        "operationId": "listModels",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{"$ref": "#/components/parameters/RequestId"}],
+        "responses": {"200": {"description": "Authorized logical model capabilities"}}
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {"type": "http", "scheme": "bearer"}
+    },
+    "parameters": {
+      "RequestId": {
+        "name": "X-Request-Id",
+        "in": "header",
+        "required": true,
+        "schema": {"type": "string", "minLength": 1}
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC 9457 problem",
+        "content": {
+          "application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}
+        }
+      }
+    },
+    "schemas": {
+      "Message": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {"enum": ["system", "developer", "user", "assistant"]},
+          "content": {"type": "string", "minLength": 1}
+        }
+      },
+      "InferenceRequest": {
+        "type": "object",
+        "required": ["capability", "modelAlias", "messages"],
+        "properties": {
+          "capability": {"type": "string"},
+          "modelAlias": {"type": "string"},
+          "messages": {"type": "array", "minItems": 1, "items": {"$ref": "#/components/schemas/Message"}},
+          "responseFormat": {"type": ["object", "null"]}
+        }
+      },
+      "EmbeddingRequest": {
+        "type": "object",
+        "required": ["modelAlias", "inputs", "dimensions", "purpose"],
+        "properties": {
+          "modelAlias": {"type": "string"},
+          "inputs": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"type": "string"}},
+          "dimensions": {"type": "integer", "minimum": 1, "maximum": 4096},
+          "purpose": {"type": "string"}
+        }
+      },
+      "Problem": {
+        "type": "object",
+        "required": ["type", "title", "status", "code", "requestId", "retryable"],
+        "properties": {
+          "type": {"type": "string", "format": "uri"},
+          "title": {"type": "string"},
+          "status": {"type": "integer"},
+          "detail": {"type": "string"},
+          "code": {"type": "string"},
+          "requestId": {"type": "string"},
+          "retryable": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}
