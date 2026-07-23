@@ -28,6 +28,7 @@
 | 个人分支、GenC 权限与备份盘点计划 | `records/plans/20260721-PLAN-personal-branch-genc-permissions-backup-inventory.md` | 三仓库建立 `szharf-dev`，保存当前成果，启动权限开发并只读整理 Codex 备份。 |
 | GenB 中英文双版本 Nginx 路由处理计划 | `records/plans/20260722-PLAN-genb-bilingual-nginx-routing.md` | 固定中文 `/genb` 与英文 `/genb-en`，记录英文构建 base、Nginx 路由、验证门禁和回滚顺序。 |
 | 核心组件平台详细实施计划 | `records/plans/20260723-PLAN-core-component-platform-implementation.md` | 从公共契约、Inference Engine、GenB控制面、长短记忆到五系统14组件总体验收的里程碑、工作包和当前Iteration 1/2。 |
+| Long-term Memory Iteration 13 | `records/reports/20260724-REPORT-long-term-memory-iteration-13.md` | 长期记忆Store/Worker/Interface、GenB测试台、远程PostgreSQL和四段真实链路验收。 |
 | 核心组件管理端Iteration 6计划 | `records/plans/20260723-PLAN-core-component-console-iteration-6.md` | 交付固定五系统/14组件目录页，并落实“设计可表达外键、实际DDL无物理外键”的数据库门禁。 |
 | 核心组件详情Iteration 7计划 | `records/plans/20260723-PLAN-core-component-detail-iteration-7.md` | 从目录卡片进入详情，通过聚合读接口展示实现、配置、绑定和审计。 |
 | Genesis 与 Gen-C 统一授权改造前基线 | `records/baselines/20260720-genesis-genc-unified-authorization-baseline.md` | GenB/GenC Git 状态、本地 PostgreSQL 与 GenC SQLite 可恢复备份和校验值。 |

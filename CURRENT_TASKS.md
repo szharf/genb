@@ -10,12 +10,12 @@
 
 | 工作包 | Module/边界 | 完成标准 | 状态 |
 |---|---|---|---|
-| WP1 契约与迁移 | Long-term公开Interface、错误、配置Schema和显式SQL迁移；设计可标逻辑关系，实际表无物理外键 | 迁移幂等、回滚/前向修复说明、远程开发库只追加 | 进行中 |
-| WP2 Long-term Store | Module拥有Repository Port，PostgreSQL Adapter实现三维隔离、去重、版本、TTL/retention和软删除 | In-memory/PostgreSQL合同、跨agent/user/tenant隔离和删除测试 | 未开始 |
-| WP3 Extraction Job/Worker | 接收任务202、租约领取、Runtime结构化提取、敏感拒绝、置信度和UPSERT/NO_WRITE | 幂等、重试上限、旧租约恢复、失败不影响短期记忆 | 未开始 |
-| WP4 Search/Delete Interface | 搜索只返回允许类型和未过期记录；用户删除与管理员审计删除闭环 | scope、Actor Token、分页/上限、删除审计和不存在幂等 | 未开始 |
-| WP5 GenB与测试台 | 注册/发布Long-term真实Implementation和配置，扩展测试智能体/管理测试台 | 跨会话召回、A/B隔离、敏感信息不落库、页面演示 | 未开始 |
-| WP6 验收收口 | 自动化、远程PostgreSQL、Runtime HTTP、秘密/SDK/FK扫描、报告与提交 | M5出口矩阵全部通过 | 未开始 |
+| WP1 契约与迁移 | Long-term公开Interface、错误、配置Schema和显式SQL迁移；设计可标逻辑关系，实际表无物理外键 | 迁移幂等、回滚/前向修复说明、远程开发库只追加 | 已完成 |
+| WP2 Long-term Store | Module拥有Repository Port，PostgreSQL Adapter实现三维隔离、去重、版本、TTL/retention和软删除 | In-memory/PostgreSQL合同、跨agent/user/tenant隔离和删除测试 | 已完成 |
+| WP3 Extraction Job/Worker | 接收任务202、租约领取、Runtime结构化提取、敏感拒绝、置信度和UPSERT/NO_WRITE | 幂等、重试上限、旧租约恢复、失败不影响短期记忆 | 已完成 |
+| WP4 Search/Delete Interface | 搜索只返回允许类型和未过期记录；用户删除与管理员审计删除闭环 | scope、Actor Token、分页/上限、删除审计和不存在幂等 | 已完成 |
+| WP5 GenB与测试台 | 注册/发布Long-term真实Implementation和配置，扩展测试智能体/管理测试台 | 跨会话召回、A/B隔离、敏感信息不落库、页面演示 | 已完成 |
+| WP6 验收收口 | 自动化、远程PostgreSQL、Runtime HTTP、秘密/SDK/FK扫描、报告与提交 | M5出口矩阵全部通过 | 已完成 |
 
 ### 3. 一期边界
 
@@ -27,13 +27,13 @@
 
 ### 4. 完成标准
 
-- [ ] 提取任务快速返回202，Worker可恢复、幂等、有限重试并记录NO_WRITE/失败原因。
-- [ ] 三类长期记忆通过严格Schema、敏感过滤、置信度阈值和保留期后入库。
-- [ ] tenant/user/agent任一不同均不可检索或删除他人记录。
-- [ ] PostgreSQL实际表无物理外键；迁移和业务测试使用远程开发库只追加、不直接删既有数据。
-- [ ] GenB发布配置控制类型、阈值、保留期、topK、自动提取、模型别名和失败策略。
-- [ ] 测试台与Test Agent完成跨session召回、A/B隔离、敏感拒绝、删除和Runtime故障演示。
-- [ ] 全量回归、可观测、秘密/SDK/FK扫描、报告和精确提交通过。
+- [x] 提取任务快速返回202，Worker可恢复、幂等、有限重试并记录NO_WRITE/失败原因。
+- [x] 三类长期记忆通过严格Schema、敏感过滤、置信度阈值和保留期后入库。
+- [x] tenant/user/agent任一不同均不可检索或删除他人记录。
+- [x] PostgreSQL实际表无物理外键；迁移和业务测试使用远程开发库只追加、不直接删既有数据。
+- [x] GenB发布配置控制类型、阈值、保留期、topK、自动提取、模型别名和失败策略。
+- [x] 测试台与Test Agent完成跨session召回、A/B隔离、敏感拒绝、删除和Runtime故障演示。
+- [x] 全量回归、可观测、秘密/SDK/FK扫描、报告和精确提交通过。
 
 ## 任务：核心组件平台 Iteration 12——短期记忆摘要、运行配置、管理端测试台与可观测性
 
