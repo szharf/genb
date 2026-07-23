@@ -247,7 +247,34 @@
 - [x] 无Runtime SDK依赖、无秘密、无外部网络调用。
 - [x] 报告、任务和索引更新。
 
-## 13. 提交策略
+## 13. 当前迭代（Iteration 2）
+
+### 目标
+
+在不改变调用方Inference Interface的前提下，实现离线可验证的OpenAI-compatible Direct Provider主链路和版本化路由配置，为真实Provider门禁联调提供基础。
+
+### 范围
+
+- `modelAlias`到Provider/model/capabilities/dimensions的静态发布路由。
+- `env://` Secret Resolver；配置和测试中不保存API Key明文。
+- 普通Chat、Provider原生JSON Schema、SSE和Embedding Adapter。
+- Provider 429、4xx、5xx、连接、超时和非法响应统一错误。
+- `/models`由发布路由动态生成；运行入口通过`MODEL_ROUTING_CONFIG`加载配置。
+- 只使用外部HTTP Mock Transport验证，不访问真实Provider。
+
+### Iteration 2完成标准
+
+- [x] Direct Provider普通推理、结构化输出、流式和Embedding通过公开Interface测试。
+- [x] 未发布别名、能力和Embedding维度fail-closed。
+- [x] 重复别名、重复Provider、未知Provider、非HTTP地址和缺失Secret启动前失败。
+- [x] 模型目录来自路由配置，不暴露Endpoint或secretRef。
+- [x] 上游错误不回显Provider正文、密钥或Prompt。
+- [x] 配置Schema、示例、README和阶段报告完整。
+- [ ] 使用真实脱敏数据完成Provider官方契约、费用和数据政策门禁。
+
+Iteration 2完成的是M2工程主链路，不代表M2整体完成；最后一项真实门禁通过后才能把M2状态改为完成。
+
+## 14. 提交策略
 
 - 当前根工作区存在大量历史未跟踪文件和子仓库改动，只精确暂存本计划、当前相关文档和新服务文件。
 - 不使用`git add .`，不提交日志、缓存、虚拟环境、构建产物或无关子仓库状态。

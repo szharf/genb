@@ -14,6 +14,7 @@ class ProviderInferenceResult:
     input_tokens: int
     output_tokens: int
     finish_reason: str = "STOP"
+    estimated: bool = True
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,7 @@ class ProviderEmbeddingResult:
     model: str
     provider: str
     input_tokens: int
+    estimated: bool = True
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,24 @@ class ProviderHealth:
     status: str
 
 
+class ProviderFailure(Exception):
+    def __init__(
+        self,
+        *,
+        status: int,
+        code: str,
+        title: str,
+        detail: str,
+        retryable: bool,
+    ) -> None:
+        super().__init__(detail)
+        self.status = status
+        self.code = code
+        self.title = title
+        self.detail = detail
+        self.retryable = retryable
+
+
 class ModelProvider(Protocol):
     async def infer(self, request: InferenceRequest) -> ProviderInferenceResult: ...
 
@@ -43,6 +63,8 @@ class ModelProvider(Protocol):
     def stream(self, request: InferenceRequest) -> AsyncIterator[ProviderStreamChunk]: ...
 
     async def health(self) -> ProviderHealth: ...
+
+    def models(self) -> list[dict[str, object]]: ...
 
 
 class FakeModelProvider:
@@ -107,3 +129,23 @@ class FakeModelProvider:
 
     async def health(self) -> ProviderHealth:
         return ProviderHealth(provider="FAKE", status="UP")
+
+    def models(self) -> list[dict[str, object]]:
+        return [
+            {
+                "modelAlias": "chat-default",
+                "capabilities": ["CHAT", "STREAM"],
+                "status": "AVAILABLE",
+            },
+            {
+                "modelAlias": "embedding-default",
+                "capabilities": ["EMBEDDING"],
+                "dimensions": [4],
+                "status": "AVAILABLE",
+            },
+            {
+                "modelAlias": "memory-extraction-default",
+                "capabilities": ["CHAT", "JSON_SCHEMA"],
+                "status": "AVAILABLE",
+            },
+        ]

@@ -16,7 +16,7 @@ from .models import (
     Usage,
 )
 from .errors import RuntimeProblem
-from .provider import ModelProvider
+from .provider import ModelProvider, ProviderFailure
 from .schema import RestrictedJsonSchemaValidator, SchemaValidationError
 
 
@@ -28,7 +28,10 @@ class InferenceService:
     async def infer(
         self, request: InferenceRequest, request_id: str
     ) -> InferenceResponse:
-        result = await self._provider.infer(request)
+        try:
+            result = await self._provider.infer(request)
+        except ProviderFailure as error:
+            raise self._runtime_problem(error, request_id) from error
         structured = None
         if request.response_format is not None:
             try:
@@ -55,7 +58,7 @@ class InferenceService:
                     input_tokens=result.input_tokens,
                     output_tokens=result.output_tokens,
                     total_tokens=result.input_tokens + result.output_tokens,
-                    estimated=True,
+                    estimated=result.estimated,
                 ),
                 finish_reason=result.finish_reason,
             ),
@@ -71,7 +74,10 @@ class InferenceService:
     async def embed(
         self, request: EmbeddingRequest, request_id: str
     ) -> EmbeddingResponse:
-        result = await self._provider.embed(request)
+        try:
+            result = await self._provider.embed(request)
+        except ProviderFailure as error:
+            raise self._runtime_problem(error, request_id) from error
         if (
             len(result.vectors) != len(request.inputs)
             or any(len(vector) != request.dimensions for vector in result.vectors)
@@ -101,7 +107,7 @@ class InferenceService:
                 dimensions=request.dimensions,
                 usage=EmbeddingUsage(
                     input_tokens=result.input_tokens,
-                    estimated=True,
+                    estimated=result.estimated,
                 ),
             ),
             meta=ResponseMeta(
@@ -123,14 +129,25 @@ class InferenceService:
             "modelAlias": request.model_alias,
         }
         output_tokens = 0
-        async for chunk in self._provider.stream(request):
+        try:
+            async for chunk in self._provider.stream(request):
+                sequence += 1
+                output_tokens += len(chunk.content)
+                yield "response.delta", {
+                    "sequence": sequence,
+                    "requestId": request_id,
+                    "content": chunk.content,
+                }
+        except ProviderFailure as error:
             sequence += 1
-            output_tokens += len(chunk.content)
-            yield "response.delta", {
+            yield "response.error", {
                 "sequence": sequence,
                 "requestId": request_id,
-                "content": chunk.content,
+                "code": error.code,
+                "detail": error.detail,
+                "retryable": error.retryable,
             }
+            return
         sequence += 1
         yield "response.usage", {
             "sequence": sequence,
@@ -144,3 +161,16 @@ class InferenceService:
             "requestId": request_id,
             "finishReason": "STOP",
         }
+
+    @staticmethod
+    def _runtime_problem(
+        error: ProviderFailure, request_id: str
+    ) -> RuntimeProblem:
+        return RuntimeProblem(
+            status=error.status,
+            code=error.code,
+            title=error.title,
+            detail=error.detail,
+            request_id=request_id,
+            retryable=error.retryable,
+        )

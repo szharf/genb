@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0",
+  "providers": [
+    {
+      "providerId": "direct-primary",
+      "type": "OPENAI_COMPATIBLE",
+      "baseUrl": "https://provider.example/v1",
+      "secretRef": "env://DIRECT_PROVIDER_API_KEY",
+      "timeoutMs": 30000
+    }
+  ],
+  "routes": [
+    {
+      "routeId": "memory-primary",
+      "modelAlias": "memory-extraction-default",
+      "capabilities": ["CHAT", "JSON_SCHEMA"],
+      "providerId": "direct-primary",
+      "model": "replace-with-approved-chat-model"
+    },
+    {
+      "routeId": "embedding-primary-v1",
+      "modelAlias": "embedding-default-v1",
+      "capabilities": ["EMBEDDING"],
+      "providerId": "direct-primary",
+      "model": "replace-with-approved-embedding-model",
+      "dimensions": [1024]
+    }
+  ]
+}

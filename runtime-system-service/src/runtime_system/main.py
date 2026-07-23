@@ -1,4 +1,6 @@
+import json
 import os
+from pathlib import Path
 
 from .app import (
     EMBED_SCOPE,
@@ -8,6 +10,7 @@ from .app import (
     create_app,
 )
 from .identity import StaticTokenIdentityVerifier
+from .routing import build_provider_from_document
 
 
 def build_app():
@@ -21,8 +24,19 @@ def build_app():
             MODELS_READ_SCOPE,
             HEALTH_READ_SCOPE,
         }
+    routing_config = os.getenv("MODEL_ROUTING_CONFIG")
+    provider = None
+    if routing_config:
+        document = json.loads(
+            Path(routing_config).read_text(encoding="utf-8")
+        )
+        provider = build_provider_from_document(
+            document,
+            environment=os.environ,
+        )
     return create_app(
         identity_verifier=StaticTokenIdentityVerifier(tokens=tokens),
+        provider=provider,
         environment=environment,
     )
 

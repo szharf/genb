@@ -66,4 +66,17 @@ $env:PYTHONPATH='D:\code\opencode\genb\runtime-system-service\src'
 - 生产环境禁止Static Token和Fake Provider ready。
 - 不记录或返回Provider密钥。
 - Control System和智能体只使用GenB身份调用该Interface。
-- Direct Provider、JWT/mTLS、配额、限流和Secrets属于后续迭代。
+- JWT/mTLS、配额、限流、熔断和Secrets Manager属于后续迭代。
+
+## Direct Provider离线配置
+
+Iteration 2新增OpenAI-compatible Direct Provider Adapter。外部调用方Interface不变；Runtime根据`modelAlias`从已发布路由选择Provider和真实模型。
+
+1. 复制`config/model-routing.example.json`到部署侧配置目录。
+2. 将`baseUrl`和`model`替换为经过评审的Provider配置。
+3. 保持`secretRef`为`env://VARIABLE_NAME`，只在进程环境中注入该变量的真实值。
+4. 设置`MODEL_ROUTING_CONFIG`为配置文件绝对路径后启动。
+
+配置文件、数据库、日志、测试fixture和镜像都不得出现API Key明文。未设置`MODEL_ROUTING_CONFIG`时仍使用Fake Adapter；生产环境下Fake Adapter不会通过ready检查。
+
+当前Direct Adapter支持普通Chat、Provider原生JSON Schema、SSE流式和Embedding协议，并统一处理429、Provider 5xx、连接失败、超时及非法响应。本迭代只做离线Mock Transport契约验证；必须完成真实Provider选型、脱敏联调、费用和数据政策门禁后才能用于生产。

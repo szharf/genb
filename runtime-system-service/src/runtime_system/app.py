@@ -174,26 +174,7 @@ def create_app(
         _request_id: str = Header(alias="X-Request-Id"),
         _identity: CallerIdentity = Depends(require_models_identity),
     ) -> dict[str, object]:
-        return {
-            "data": [
-                {
-                    "modelAlias": "chat-default",
-                    "capabilities": ["CHAT", "STREAM"],
-                    "status": "AVAILABLE",
-                },
-                {
-                    "modelAlias": "embedding-default",
-                    "capabilities": ["EMBEDDING"],
-                    "dimensions": [4],
-                    "status": "AVAILABLE",
-                },
-                {
-                    "modelAlias": "memory-extraction-default",
-                    "capabilities": ["CHAT", "JSON_SCHEMA"],
-                    "status": "AVAILABLE",
-                },
-            ]
-        }
+        return {"data": active_provider.models()}
 
     @app.get("/health/live")
     async def live() -> dict[str, str]:
