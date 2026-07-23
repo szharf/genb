@@ -19,7 +19,8 @@ Control System 执行面服务。Iteration 9—12完成Short-term Memory、GenB�
 - GenB已发布配置按Actor Token中的`configVersionId`读取和缓存；非法、草稿或不可用配置fail-closed。
 - 摘要通过Control拥有的`SummaryGenerator` Port调用我方Runtime Inference Interface；Fake只用于测试，失败保留最近窗口并标记降级。
 - Redis摘要独立存储，使用`throughTurnId`乐观检查阻止旧任务覆盖新摘要。
-- `/health/live`、`/health/ready`、`/version`、`/metrics`和版本化OpenAPI；日志和指标不记录正文或凭证。
+- `/health/live`、`/health/ready`、`/version`、`/metrics`和版本化OpenAPI；ready同时检查Redis与PostgreSQL，日志和指标不记录正文或凭证。
+- 业务HTTP请求具备body大小、进程请求速率、并发和容量等待上限；超限使用稳定Problem Details并fail-closed。
 
 ## 身份模式
 
@@ -125,6 +126,8 @@ $env:CONTROL_SYSTEM_RUNTIME_TOKEN = '<runtime service credential>'
 ```
 
 生产环境强制GenB与Runtime Inference使用HTTPS，并要求摘要Adapter配置完整。本地缺Runtime配置时不会伪造摘要，`/health/ready`会在显式启用该Adapter的运行模式中报告`runtime-inference`降级。
+
+生产环境还必须设置至少16字符的`CONTROL_METRICS_TOKEN`，抓取`/metrics`时用Bearer传递；本地未设置时可直接查看。运行保护参数为`CONTROL_MAX_BODY_BYTES`、`CONTROL_REQUESTS_PER_WINDOW`、`CONTROL_RATE_WINDOW_SECONDS`、`CONTROL_MAX_CONCURRENT_REQUESTS`和`CONTROL_CAPACITY_WAIT_SECONDS`。这些是单进程保护，生产多副本总配额仍需网关或共享限流层。
 
 GenB需要由环境提供`GENB_TENANT_ID`、`COMPONENT_ACTOR_KEY_ID`、`COMPONENT_ACTOR_PRIVATE_KEY_PATH`和`CONTROL_SYSTEM_INTERNAL_TOKEN`。私钥使用PKCS#8 PEM且不得小于2048 bit；JWKS仅发布相应公钥。不要把这些值或私钥提交到Git。
 

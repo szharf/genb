@@ -44,6 +44,8 @@ class LongTermMemoryRepository(Protocol):
 
     async def next_pending_extraction_id(self) -> str | None: ...
 
+    async def pending_extraction_stats(self) -> tuple[int, float]: ...
+
     async def retry_extraction(
         self, extraction_id: str, *, error_code: str, retry_after_seconds: int
     ) -> str: ...
@@ -188,6 +190,21 @@ class InMemoryLongTermMemoryRepository:
             )
         ]
         return min(eligible, key=lambda job: job.created_at).extraction_id if eligible else None
+
+    async def pending_extraction_stats(self) -> tuple[int, float]:
+        now = datetime.now(UTC)
+        pending = [
+            job
+            for job in self._jobs.values()
+            if job.status == "PENDING"
+            or job.status == "RUNNING"
+            and job.lease_until is not None
+            and job.lease_until <= now
+        ]
+        if not pending:
+            return 0, 0.0
+        oldest = min(job.created_at for job in pending)
+        return len(pending), max(0.0, (now - oldest).total_seconds())
 
     async def retry_extraction(
         self, extraction_id: str, *, error_code: str, retry_after_seconds: int

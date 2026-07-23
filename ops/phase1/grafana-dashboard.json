@@ -1,0 +1,50 @@
+{
+  "title": "GenB Core Components Phase 1",
+  "uid": "genb-core-phase1",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "tags": ["genb", "core-components", "phase1"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Runtime request rate",
+      "type": "timeseries",
+      "targets": [{"expr": "sum(rate(runtime_http_requests_total[5m]))", "refId": "A"}]
+    },
+    {
+      "id": 2,
+      "title": "Runtime p95 latency",
+      "type": "timeseries",
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(runtime_http_duration_seconds_bucket[5m])))", "refId": "A"}]
+    },
+    {
+      "id": 3,
+      "title": "Control request rate",
+      "type": "timeseries",
+      "targets": [{"expr": "sum(rate(control_system_http_requests_total[5m]))", "refId": "A"}]
+    },
+    {
+      "id": 4,
+      "title": "Control p95 latency",
+      "type": "timeseries",
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(control_system_http_duration_seconds_bucket[5m])))", "refId": "A"}]
+    },
+    {
+      "id": 5,
+      "title": "Protection rejections",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "sum by (reason) (increase(runtime_protection_rejections_total[5m]))", "refId": "A"},
+        {"expr": "sum by (reason) (increase(control_protection_rejections_total[5m]))", "refId": "B"}
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Long-term extraction queue",
+      "type": "timeseries",
+      "targets": [{"expr": "max(long_term_extraction_queue_depth)", "refId": "A"}]
+    }
+  ]
+}
+

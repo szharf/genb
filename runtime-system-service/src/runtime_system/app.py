@@ -1,8 +1,9 @@
 import json
+from time import monotonic
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from starlette.responses import StreamingResponse
 
 from .errors import RuntimeProblem
@@ -14,7 +15,9 @@ from .models import (
     InferenceResponse,
 )
 from .provider import FakeModelProvider, ModelProvider
+from .protection import RuntimeCapacityGuard, RuntimeProtectionSettings
 from .service import InferenceService
+from .telemetry import MetricsRegistry
 
 INFER_SCOPE = "component:inference-engine:infer"
 EMBED_SCOPE = "component:inference-engine:embed"
@@ -27,17 +30,45 @@ def create_app(
     identity_verifier: IdentityVerifier,
     provider: ModelProvider | None = None,
     environment: str = "local",
+    protection_settings: RuntimeProtectionSettings | None = None,
+    metrics: MetricsRegistry | None = None,
 ) -> FastAPI:
     app = FastAPI(title="GenB Runtime System", version="0.1.0")
     active_provider = provider or FakeModelProvider()
     service = InferenceService(active_provider)
+    metric_registry = metrics or MetricsRegistry()
+    capacity_guard = RuntimeCapacityGuard(
+        protection_settings or RuntimeProtectionSettings(), metric_registry
+    )
+    app.state.metrics = metric_registry
+
+    @app.middleware("http")
+    async def measure_http(request: Request, call_next):
+        started = monotonic()
+        response = await call_next(request)
+        route = request.scope.get("route")
+        operation = getattr(route, "operation_id", None) or "unmatched"
+        metric_registry.increment(
+            "runtime_http_requests_total",
+            {"operation": operation, "status": str(response.status_code)},
+        )
+        metric_registry.observe(
+            "runtime_http_duration_seconds",
+            monotonic() - started,
+            {"operation": operation},
+        )
+        return response
 
     @app.exception_handler(RuntimeProblem)
     async def handle_runtime_problem(
         _request: Request, problem: RuntimeProblem
     ) -> JSONResponse:
+        headers = None
+        if problem.code == "MODEL_RATE_LIMITED":
+            headers = {"Retry-After": str(capacity_guard.settings.window_seconds)}
         return JSONResponse(
             status_code=problem.status,
+            headers=headers,
             media_type="application/problem+json",
             content={
                 "type": f"https://errors.genb.local/{problem.code.lower().replace('_', '-')}",
@@ -136,24 +167,39 @@ def create_app(
     async def infer(
         request: InferenceRequest,
         request_id: str = Header(alias="X-Request-Id"),
-        _identity: CallerIdentity = Depends(require_inference_identity),
+        identity: CallerIdentity = Depends(require_inference_identity),
     ) -> InferenceResponse:
-        return await service.infer(request, request_id)
+        lease = await capacity_guard.acquire(
+            identity,
+            input_characters=_inference_characters(request),
+            request_id=request_id,
+        )
+        async with lease:
+            return await service.infer(request, request_id)
 
     @app.post("/api/v1/runtime-system/inference:stream")
     async def stream_inference(
         request: InferenceRequest,
         request_id: str = Header(alias="X-Request-Id"),
-        _identity: CallerIdentity = Depends(require_inference_identity),
+        identity: CallerIdentity = Depends(require_inference_identity),
     ) -> StreamingResponse:
+        lease = await capacity_guard.acquire(
+            identity,
+            input_characters=_inference_characters(request),
+            request_id=request_id,
+        )
+
         async def event_stream():
-            async for event_name, payload in service.stream_events(
-                request, request_id
-            ):
-                data = json.dumps(
-                    payload, ensure_ascii=False, separators=(",", ":")
-                )
-                yield f"event: {event_name}\ndata: {data}\n\n"
+            try:
+                async for event_name, payload in service.stream_events(
+                    request, request_id
+                ):
+                    data = json.dumps(
+                        payload, ensure_ascii=False, separators=(",", ":")
+                    )
+                    yield f"event: {event_name}\ndata: {data}\n\n"
+            finally:
+                lease.release()
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -165,9 +211,15 @@ def create_app(
     async def embed(
         request: EmbeddingRequest,
         request_id: str = Header(alias="X-Request-Id"),
-        _identity: CallerIdentity = Depends(require_embedding_identity),
+        identity: CallerIdentity = Depends(require_embedding_identity),
     ) -> EmbeddingResponse:
-        return await service.embed(request, request_id)
+        lease = await capacity_guard.acquire(
+            identity,
+            input_characters=sum(len(value) for value in request.inputs),
+            request_id=request_id,
+        )
+        async with lease:
+            return await service.embed(request, request_id)
 
     @app.get("/api/v1/runtime-system/models")
     async def models(
@@ -225,4 +277,25 @@ def create_app(
             },
         }
 
+    @app.get("/internal/metrics", include_in_schema=False)
+    async def metrics_endpoint(
+        _identity: CallerIdentity = Depends(require_health_identity),
+    ) -> PlainTextResponse:
+        return PlainTextResponse(
+            metric_registry.render(), media_type="text/plain; version=0.0.4"
+        )
+
     return app
+
+
+def _inference_characters(request: InferenceRequest) -> int:
+    total = sum(len(message.content) for message in request.messages)
+    if request.response_format is not None:
+        total += len(
+            json.dumps(
+                request.response_format.json_schema,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
+    return total

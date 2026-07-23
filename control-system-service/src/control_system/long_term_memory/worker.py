@@ -1,3 +1,6 @@
+import asyncio
+from uuid import uuid4
+
 from ..short_term_memory.redaction import contains_sensitive_content
 from ..telemetry import MetricsRegistry
 from .config import MEMORY_TYPES
@@ -102,10 +105,18 @@ class ExtractionWorker:
 
 
 class ExtractionWorkerRunner:
-    def __init__(self, worker: ExtractionWorker, repository: LongTermMemoryRepository, *, poll_seconds: float = 1.0) -> None:
+    def __init__(
+        self,
+        worker: ExtractionWorker,
+        repository: LongTermMemoryRepository,
+        *,
+        poll_seconds: float = 1.0,
+        metrics: MetricsRegistry | None = None,
+    ) -> None:
         self._worker = worker
         self._repository = repository
         self._poll_seconds = poll_seconds
+        self._metrics = metrics or MetricsRegistry()
         self._task: asyncio.Task | None = None
 
     async def start(self) -> None:
@@ -124,6 +135,7 @@ class ExtractionWorkerRunner:
 
     async def _run(self) -> None:
         while True:
+            await self.refresh_metrics()
             extraction_id = await self._repository.next_pending_extraction_id()
             if extraction_id is None:
                 await asyncio.sleep(self._poll_seconds)
@@ -133,5 +145,8 @@ class ExtractionWorkerRunner:
                 request_id=f"worker-{uuid4().hex}",
                 trace_parent=None,
             )
-import asyncio
-from uuid import uuid4
+
+    async def refresh_metrics(self) -> None:
+        depth, oldest_age = await self._repository.pending_extraction_stats()
+        self._metrics.set("long_term_extraction_queue_depth", depth)
+        self._metrics.set("long_term_extraction_oldest_age_seconds", oldest_age)

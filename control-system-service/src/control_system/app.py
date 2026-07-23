@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import json
 import logging
 import re
+from secrets import compare_digest
 from time import monotonic
 from uuid import uuid4
 
@@ -32,6 +33,7 @@ from .long_term_memory.repository import (
 )
 from .long_term_memory.service import LongTermMemoryService
 from .long_term_memory.worker import ExtractionWorkerRunner
+from .protection import HttpProtection, HttpProtectionSettings
 from .short_term_memory.models import (
     CommitTurnRequest,
     ConversationTurn,
@@ -68,7 +70,11 @@ def create_app(
     process_extractions_inline: bool = False,
     run_extraction_worker: bool = False,
     extraction_worker_poll_seconds: float = 1.0,
+    protection_settings: HttpProtectionSettings | None = None,
+    metrics_token: str | None = None,
 ) -> FastAPI:
+    if metrics_token is not None and len(metrics_token) < 16:
+        raise ValueError("Metrics token must contain at least 16 characters")
     app = FastAPI(title="GenB Control System", version="0.2.0")
     metric_registry = metrics or MetricsRegistry()
     metric_registry.ensure("short_term_context_hits_total")
@@ -87,6 +93,9 @@ def create_app(
         metrics=metric_registry,
     )
     app.state.metrics = metric_registry
+    http_protection = HttpProtection(
+        protection_settings or HttpProtectionSettings(), metric_registry
+    )
     active_long_term_repository = (
         long_term_repository or InMemoryLongTermMemoryRepository()
     )
@@ -115,10 +124,15 @@ def create_app(
             long_term.worker,
             active_long_term_repository,
             poll_seconds=extraction_worker_poll_seconds,
+            metrics=metric_registry,
         )
         app.state.extraction_worker = extraction_runner
         app.add_event_handler("startup", extraction_runner.start)
         app.add_event_handler("shutdown", extraction_runner.stop)
+
+    @app.middleware("http")
+    async def enforce_http_protection(request: Request, call_next):
+        return await http_protection.dispatch(request, call_next)
 
     @app.middleware("http")
     async def measure_http(request: Request, call_next):
@@ -129,11 +143,8 @@ def create_app(
         labels = {"operation": operation, "status": str(response.status_code)}
         metric_registry.increment("control_system_http_requests_total", labels)
         duration = monotonic() - started
-        metric_registry.increment(
-            "control_system_http_duration_seconds_sum", {"operation": operation}, duration
-        )
-        metric_registry.increment(
-            "control_system_http_duration_seconds_count", {"operation": operation}
+        metric_registry.observe(
+            "control_system_http_duration_seconds", duration, {"operation": operation}
         )
         request_id = request.headers.get("X-Request-Id")
         trace_parent = request.headers.get("traceparent")
@@ -477,21 +488,23 @@ def create_app(
     @app.get("/health/ready", operation_id="controlSystemReady")
     async def ready() -> JSONResponse:
         store_ready = await session_store.health()
+        long_term_store_ready = await active_long_term_repository.health()
         degraded_dependencies: list[str] = []
         if summary_generator is not None:
             health = getattr(summary_generator, "health", None)
             if health is not None and not await health():
                 degraded_dependencies.append("runtime-inference")
         content: dict[str, object] = {
-            "status": "UP" if store_ready else "DOWN",
+            "status": "UP" if store_ready and long_term_store_ready else "DOWN",
             "dependencies": {
-                "shortTermStore": "UP" if store_ready else "DOWN"
+                "shortTermStore": "UP" if store_ready else "DOWN",
+                "longTermStore": "UP" if long_term_store_ready else "DOWN",
             },
         }
         if degraded_dependencies:
             content["degradedDependencies"] = degraded_dependencies
         return JSONResponse(
-            status_code=200 if store_ready else 503,
+            status_code=200 if store_ready and long_term_store_ready else 503,
             content=content,
         )
 
@@ -504,7 +517,21 @@ def create_app(
         }
 
     @app.get("/metrics", operation_id="controlSystemMetrics", include_in_schema=False)
-    async def metrics_endpoint() -> PlainTextResponse:
+    async def metrics_endpoint(
+        authorization: str | None = Header(default=None),
+        request_id: str | None = Header(default=None, alias="X-Request-Id"),
+    ) -> PlainTextResponse:
+        if metrics_token is not None:
+            supplied = (
+                authorization.removeprefix("Bearer ")
+                if authorization and authorization.startswith("Bearer ")
+                else ""
+            )
+            if not supplied or not compare_digest(supplied, metrics_token):
+                raise AuthenticationProblem(
+                    "Metrics bearer token is required",
+                    request_id or f"req_{uuid4().hex}",
+                )
         return PlainTextResponse(
             metric_registry.render(),
             media_type="text/plain; version=0.0.4; charset=utf-8",

@@ -13,6 +13,7 @@ GenB核心组件平台的Runtime System一期实现。当前Iteration 1提供可
 | GET | `/health/live` | 无 |
 | GET | `/health/ready` | 无 |
 | GET | `/internal/health/models` | `component:inference-engine:health:read` |
+| GET | `/internal/metrics` | `component:inference-engine:health:read` |
 
 静态契约见`openapi/runtime-inference-v1.json`。FastAPI运行时契约见`/openapi.json`。
 
@@ -35,7 +36,7 @@ $env:PYTHONPATH='D:\code\opencode\genb\runtime-system-service\src'
 & '<python-path>' -m uvicorn runtime_system.main:app --host 127.0.0.1 --port 8704
 ```
 
-`RUNTIME_STATIC_TOKEN`只用于本地Iteration 1。`APP_ENV=production`时不会加载它，并且Fake Provider会使`/health/ready`返回503。
+`RUNTIME_STATIC_TOKEN`只用于本地测试。`APP_ENV=production`时Runtime通过`GENB_BASE_URL`和`COMPONENT_INTROSPECTION_INTERNAL_TOKEN`调用GenB服务凭证内省Interface，静态Token不会加载；GenB或内省响应异常时fail-closed。生产环境强制GenB使用HTTPS，Fake Provider会使`/health/ready`返回503。
 
 ## 测试
 
@@ -66,7 +67,9 @@ $env:PYTHONPATH='D:\code\opencode\genb\runtime-system-service\src'
 - 生产环境禁止Static Token和Fake Provider ready。
 - 不记录或返回Provider密钥。
 - Control System和智能体只使用GenB身份调用该Interface。
-- JWT/mTLS、配额、限流、熔断和Secrets Manager属于后续迭代。
+- 模型输入字符预算、按已内省凭证限流和进程并发上限由`RUNTIME_MAX_INPUT_CHARACTERS`、`RUNTIME_REQUESTS_PER_WINDOW`、`RUNTIME_RATE_WINDOW_SECONDS`、`RUNTIME_MAX_CONCURRENT_REQUESTS`和`RUNTIME_CAPACITY_WAIT_SECONDS`控制；非法配置启动失败。
+- `/internal/metrics`复用`component:inference-engine:health:read`权限，不输出Token或调用正文。
+- mTLS、分布式限流和正式Secrets Manager仍属于生产基础设施门禁，单进程内存限流不能冒充集群总配额。
 
 ## Direct Provider离线配置
 

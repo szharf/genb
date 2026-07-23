@@ -28,6 +28,23 @@ class MetricsRegistry:
         with self._lock:
             return self._values[self._key(name, labels)]
 
+    def observe(
+        self,
+        name: str,
+        value: float,
+        labels: dict[str, str] | None = None,
+        buckets: tuple[float, ...] = (0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10),
+    ) -> None:
+        base_labels = labels or {}
+        self.increment(f"{name}_sum", base_labels, value)
+        self.increment(f"{name}_count", base_labels)
+        for boundary in buckets:
+            if value <= boundary:
+                self.increment(
+                    f"{name}_bucket", {**base_labels, "le": _number(boundary)}
+                )
+        self.increment(f"{name}_bucket", {**base_labels, "le": "+Inf"})
+
     def render(self) -> str:
         with self._lock:
             rows = sorted(self._values.items())
@@ -53,4 +70,4 @@ def _escape(value: str) -> str:
 
 
 def _number(value: float) -> str:
-    return str(int(value)) if value.is_integer() else repr(value)
+    return str(int(value)) if float(value).is_integer() else repr(value)

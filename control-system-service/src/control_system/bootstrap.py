@@ -12,6 +12,7 @@ from .component_config import GenBShortTermMemoryConfigProvider
 from .long_term_memory.config import GenBLongTermMemoryConfigProvider
 from .long_term_memory.extraction import RuntimeInferenceExtractionModel
 from .long_term_memory.postgres_repository import PostgreSQLLongTermMemoryRepository
+from .protection import HttpProtectionSettings
 from .identity import (
     CompositeIdentityVerifier,
     RsaActorTokenVerifier,
@@ -146,6 +147,8 @@ def create_genb_connected_app() -> FastAPI:
         extraction_worker_poll_seconds=_bounded_float(
             "LONG_TERM_WORKER_POLL_SECONDS", 1.0, minimum=0.1, maximum=60.0
         ),
+        protection_settings=_http_protection_settings(),
+        metrics_token=_metrics_token(environment),
     )
     app.add_event_handler("shutdown", redis_client.aclose)
     app.add_event_handler("shutdown", genb_client.close)
@@ -247,6 +250,33 @@ def _redis_client() -> Redis:
         db=int(os.getenv("REDIS_DB", "0")),
         decode_responses=True,
     )
+
+
+def _http_protection_settings() -> HttpProtectionSettings:
+    return HttpProtectionSettings(
+        max_body_bytes=_bounded_int(
+            "CONTROL_MAX_BODY_BYTES", 262_144, minimum=1, maximum=8_388_608
+        ),
+        requests_per_window=_bounded_int(
+            "CONTROL_REQUESTS_PER_WINDOW", 600, minimum=1, maximum=100_000
+        ),
+        window_seconds=_bounded_int(
+            "CONTROL_RATE_WINDOW_SECONDS", 60, minimum=1, maximum=3600
+        ),
+        max_concurrent_requests=_bounded_int(
+            "CONTROL_MAX_CONCURRENT_REQUESTS", 64, minimum=1, maximum=10_000
+        ),
+        acquire_timeout_seconds=_bounded_float(
+            "CONTROL_CAPACITY_WAIT_SECONDS", 0.25, minimum=0.001, maximum=30
+        ),
+    )
+
+
+def _metrics_token(environment: str) -> str | None:
+    value = os.getenv("CONTROL_METRICS_TOKEN")
+    if environment == "production" and not value:
+        raise RuntimeError("CONTROL_METRICS_TOKEN is required in production")
+    return value or None
 
 
 def _runtime_summary_generator(

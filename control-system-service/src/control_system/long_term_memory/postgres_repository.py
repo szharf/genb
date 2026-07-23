@@ -169,6 +169,26 @@ class PostgreSQLLongTermMemoryRepository:
 
         return await self._run(operation)
 
+    async def pending_extraction_stats(self) -> tuple[int, float]:
+        now = datetime.now(UTC)
+
+        def operation(connection):
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT count(*),
+                           COALESCE(EXTRACT(EPOCH FROM (%s - min(created_at))), 0)
+                    FROM memory_extraction_jobs
+                    WHERE status='PENDING'
+                       OR (status='RUNNING' AND lease_until <= %s)
+                    """,
+                    (now, now),
+                )
+                count, age_seconds = cursor.fetchone()
+                return int(count), max(0.0, float(age_seconds))
+
+        return await self._run(operation)
+
     async def retry_extraction(self, extraction_id: str, *, error_code: str, retry_after_seconds: int) -> str:
         now = datetime.now(UTC)
 

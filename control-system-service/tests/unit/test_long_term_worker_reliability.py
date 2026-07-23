@@ -8,7 +8,8 @@ from control_system.long_term_memory.extraction import (
     RetryableExtractionError,
 )
 from control_system.long_term_memory.repository import InMemoryLongTermMemoryRepository
-from control_system.long_term_memory.worker import ExtractionWorker
+from control_system.long_term_memory.worker import ExtractionWorker, ExtractionWorkerRunner
+from control_system.telemetry import MetricsRegistry
 
 
 class FailingModel:
@@ -70,3 +71,25 @@ async def test_invalid_structured_output_is_no_write_without_retry() -> None:
     completed = await repository.get_extraction(job.scope, job.extraction_id)
     assert completed and completed.attempt_count == 1
     assert completed.error_code == "INVALID_MODEL_OUTPUT"
+
+
+@pytest.mark.asyncio
+async def test_worker_exports_pending_depth_and_oldest_age_without_identity_labels() -> None:
+    repository = InMemoryLongTermMemoryRepository()
+    await _job(repository)
+    metrics = MetricsRegistry()
+    runner = ExtractionWorkerRunner(
+        ExtractionWorker(
+            repository, extraction_model=FailingModel(RetryableExtractionError())
+        ),
+        repository,
+        metrics=metrics,
+    )
+
+    await runner.refresh_metrics()
+
+    assert metrics.value("long_term_extraction_queue_depth") == 1
+    assert metrics.value("long_term_extraction_oldest_age_seconds") >= 0
+    rendered = metrics.render()
+    for forbidden in ("tenant-a", "user-a", "agent-a"):
+        assert forbidden not in rendered
