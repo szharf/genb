@@ -415,7 +415,37 @@ Iteration 9不包含Long-term Memory、摘要、真实Runtime Inference、测试
 - [x] Control System真实Adapter身份链及fail-closed测试通过。
 - [x] GenB、Control System全量回归、安全扫描、报告和精确提交完成。
 
-## 19. 提交策略
+## 19. 当前迭代（Iteration 11）
+
+### 目标
+
+用一套可多实例配置的测试智能体贯通GenB控制面、组件会话和Control System Short-term Memory数据面，完成真实A/B智能体隔离验收，并把整个剩余路线按M4/M5→M6/M7→M8—M14持续关闭。
+
+### 范围与门禁
+
+1. 新建`control-system-test-agent`薄HTTP客户端和编排Module，不引入旧Runtime SDK。
+2. 每个逻辑智能体独立`agentId`和服务凭证，运行时注入用户Token与secret，不写入源码或报告。
+3. Test Agent先使用确定性回答器验证组件链；真实模型调用不作为本轮记忆验收前置条件。
+4. 提供可重复执行的A/B隔离与失败矩阵验收器，覆盖绑定、scope、凭证、Actor Token、会话和Redis隔离。
+5. 真实联调只追加`memory-test-*`测试数据；不删除既有远程数据，不部署生产，不创建物理外键。
+
+### 完成标准
+
+- [x] Test Agent客户端合同、编排和秘密保护测试通过。
+- [x] Agent A连续/跨会话与Agent B隔离矩阵通过。
+- [x] 未绑定、停用、错凭证、scope不足和过期Token全部fail-closed。
+- [x] GenB、Control System、远程PostgreSQL与本地Redis真实联调形成脱敏证据。
+- [x] 三项目回归、旧SDK/秘密扫描、报告、索引和精确提交完成。
+
+## 20. 剩余里程碑执行序列
+
+1. Iteration 11：真实测试智能体和Short-term Memory E2E。
+2. Iteration 12：Short-term Memory摘要、动态配置、管理端测试台、指标与故障演练。
+3. Iteration 13起：Long-term Memory、提取Worker、PostgreSQL迁移、Runtime Inference Adapter与删除/留存闭环。
+4. 关闭M6/M7：管理端、测试智能体、生产安全、容量、监控、灰度和回滚。
+5. 按M8—M12实现余下11项组件，M13完成完整RAG，M14关闭五系统14组件总验收矩阵。
+
+## 21. 提交策略
 
 - 当前根工作区存在大量历史未跟踪文件和子仓库改动，只精确暂存本计划、当前相关文档和新服务文件。
 - 不使用`git add .`，不提交日志、缓存、虚拟环境、构建产物或无关子仓库状态。
