@@ -437,7 +437,30 @@ Iteration 9不包含Long-term Memory、摘要、真实Runtime Inference、测试
 - [x] GenB、Control System、远程PostgreSQL与本地Redis真实联调形成脱敏证据。
 - [x] 三项目回归、旧SDK/秘密扫描、报告、索引和精确提交完成。
 
-## 20. 剩余里程碑执行序列
+## 20. 当前迭代（Iteration 12）
+
+### 目标与工作包
+
+在Iteration 11真实E2E基础上完成Short-term Memory管理测试台、发布配置运行时解析、超预算摘要和可观测性。GenB只拥有测试授权与组件调用编排，Control System继续拥有记忆规则；Vue详情页拆为Feature容器、表单、结果和Composable，服务凭证全程只写不回显。
+
+### 完成标准
+
+- [x] `component.test`权限和GenB测试Interface通过管理员/普通用户、成功/故障、秘密脱敏测试。
+- [x] 管理端Short-term Memory测试Tab通过真实页面验收，Form/Result/Composable职责分离。
+- [x] Control System按绑定的已发布配置执行TTL、窗口和预算，配置异常fail-closed。
+- [x] 超预算摘要、Inference失败降级、Redis摘要存储和清理通过合同测试。
+- [x] 指标、结构化日志、真实联调、报告、索引和精确提交完成。
+
+### 实施结果
+
+- 管理端真实测试台、后端小Invoker和`component.test`权限已交付，服务凭证只写不回显。
+- GenB新增受内部Token保护的已发布配置读取Interface；Control从Actor Token绑定快照取配置版本并短缓存，缺失、草稿、非法值和依赖故障均fail-closed。
+- Short-term Memory支持Runtime摘要Port、Redis摘要、`throughTurnId`乐观覆盖保护、预算去重、故障降级和W3C trace透传。
+- `/metrics`只使用固定低基数标签；ready可报告Runtime Inference降级，结构化日志不包含正文和认证秘密。
+- 真实GenB/Control/Runtime/远程PostgreSQL/Redis联调通过；本地Runtime Fake仅用于验收HTTP边界，未冒充真实Provider门禁已关闭。
+- 真实联调暴露并修复“停用绑定后无法切换新发布配置”的状态机缺口；唯一绑定记录原位重配置并审计，不改表、不删除数据、不创建物理外键。
+
+## 21. 剩余里程碑执行序列
 
 1. Iteration 11：真实测试智能体和Short-term Memory E2E。
 2. Iteration 12：Short-term Memory摘要、动态配置、管理端测试台、指标与故障演练。
@@ -445,7 +468,7 @@ Iteration 9不包含Long-term Memory、摘要、真实Runtime Inference、测试
 4. 关闭M6/M7：管理端、测试智能体、生产安全、容量、监控、灰度和回滚。
 5. 按M8—M12实现余下11项组件，M13完成完整RAG，M14关闭五系统14组件总验收矩阵。
 
-## 21. 提交策略
+## 22. 提交策略
 
 - 当前根工作区存在大量历史未跟踪文件和子仓库改动，只精确暂存本计划、当前相关文档和新服务文件。
 - 不使用`git add .`，不提交日志、缓存、虚拟环境、构建产物或无关子仓库状态。
