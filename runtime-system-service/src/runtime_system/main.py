@@ -60,7 +60,7 @@ def build_app():
         ),
     )
     if identity_client is not None:
-        app.add_event_handler("shutdown", identity_client.close)
+        app.router.add_event_handler("shutdown", identity_client.close)
     return app
 
 

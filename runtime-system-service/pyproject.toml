@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Runtime System service for GenB core components"
 requires-python = ">=3.11"
 dependencies = [
-  "fastapi>=0.115,<1",
+  "fastapi>=0.135.4,<0.136",
   "httpx>=0.27,<1",
   "pydantic>=2.9,<3",
   "uvicorn>=0.30,<1",

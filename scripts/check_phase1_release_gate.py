@@ -34,6 +34,8 @@ def _technical_results() -> list[GateResult]:
         "TECH_ALERTS": ROOT / "ops/phase1/prometheus-alerts.yml",
         "TECH_DASHBOARD": ROOT / "ops/phase1/grafana-dashboard.json",
         "TECH_RUNBOOK": ROOT / "docs/operation/CORE_COMPONENT_PHASE1_RUNBOOK.md",
+        "TECH_SBOM_RUNTIME": ROOT / "ops/phase1/runtime-sbom.cdx.json",
+        "TECH_SBOM_CONTROL": ROOT / "ops/phase1/control-sbom.cdx.json",
     }
     results: list[GateResult] = []
     for gate_id, path in required.items():
@@ -127,4 +129,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

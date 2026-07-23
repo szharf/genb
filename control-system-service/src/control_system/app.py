@@ -127,8 +127,8 @@ def create_app(
             metrics=metric_registry,
         )
         app.state.extraction_worker = extraction_runner
-        app.add_event_handler("startup", extraction_runner.start)
-        app.add_event_handler("shutdown", extraction_runner.stop)
+        app.router.add_event_handler("startup", extraction_runner.start)
+        app.router.add_event_handler("shutdown", extraction_runner.stop)
 
     @app.middleware("http")
     async def enforce_http_protection(request: Request, call_next):

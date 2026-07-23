@@ -1,760 +1,91 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "GenB Control System",
-    "version": "0.2.0"
-  },
-  "paths": {
-    "/api/v1/control-system/short-term-memory/turns:commit": {
-      "post": {
-        "summary": "Commit Turn",
-        "operationId": "commitShortTermTurn",
-        "security": [
-          {
-            "ServiceCredential": []
-          },
-          {
-            "ActorToken": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 16,
-              "maxLength": 128,
-              "title": "Idempotency-Key"
-            }
-          },
-          {
-            "name": "X-Request-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Request-Id"
-            }
-          },
-          {
-            "name": "traceparent",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Traceparent"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommitTurnRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "title": "Response Commitshorttermturn"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/control-system/short-term-memory/context:prepare": {
-      "post": {
-        "summary": "Prepare Context",
-        "operationId": "prepareShortTermContext",
-        "security": [
-          {
-            "ServiceCredential": []
-          },
-          {
-            "ActorToken": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-Request-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Request-Id"
-            }
-          },
-          {
-            "name": "traceparent",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Traceparent"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PrepareContextRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "title": "Response Prepareshorttermcontext"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/control-system/short-term-memory/sessions/{sessionId}": {
-      "delete": {
-        "summary": "Clear Session",
-        "operationId": "clearShortTermSession",
-        "security": [
-          {
-            "ServiceCredential": []
-          },
-          {
-            "ActorToken": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "title": "Sessionid"
-            }
-          },
-          {
-            "name": "X-Request-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Request-Id"
-            }
-          },
-          {
-            "name": "traceparent",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Traceparent"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "title": "Response Clearshorttermsession"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/control-system/long-term-memory/extractions": {
-      "post": {
-        "summary": "Request Long Term Extraction",
-        "operationId": "requestLongTermExtraction",
-        "security": [
-          {
-            "ServiceCredential": []
-          },
-          {
-            "ActorToken": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 16,
-              "maxLength": 128,
-              "title": "Idempotency-Key"
-            }
-          },
-          {
-            "name": "X-Request-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Request-Id"
-            }
-          },
-          {
-            "name": "traceparent",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Traceparent"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExtractionRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "title": "Response Requestlongtermextraction"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/control-system/long-term-memory/extractions/{extractionId}": {
-      "get": {
-        "summary": "Get Long Term Extraction",
-        "operationId": "getLongTermExtraction",
-        "security": [
-          {
-            "ServiceCredential": []
-          },
-          {
-            "ActorToken": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "extractionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "title": "Extractionid"
-            }
-          },
-          {
-            "name": "X-Request-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Request-Id"
-            }
-          },
-          {
-            "name": "traceparent",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Traceparent"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "title": "Response Getlongtermextraction"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/control-system/long-term-memory/search": {
-      "post": {
-        "summary": "Search Long Term Memory",
-        "operationId": "searchLongTermMemory",
-        "security": [
-          {
-            "ServiceCredential": []
-          },
-          {
-            "ActorToken": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "X-Request-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Request-Id"
-            }
-          },
-          {
-            "name": "traceparent",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Traceparent"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SearchRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "title": "Response Searchlongtermmemory"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/control-system/long-term-memory/memories/{memoryId}:delete": {
-      "post": {
-        "summary": "Delete Long Term Memory",
-        "operationId": "deleteLongTermMemory",
-        "security": [
-          {
-            "ServiceCredential": []
-          },
-          {
-            "ActorToken": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "memoryId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "title": "Memoryid"
-            }
-          },
-          {
-            "name": "X-Request-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Request-Id"
-            }
-          },
-          {
-            "name": "traceparent",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Traceparent"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeleteMemoryRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "title": "Response Deletelongtermmemory"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/health/live": {
-      "get": {
-        "summary": "Live",
-        "operationId": "controlSystemLive",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Controlsystemlive"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/health/ready": {
-      "get": {
-        "summary": "Ready",
-        "operationId": "controlSystemReady",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/version": {
-      "get": {
-        "summary": "Version",
-        "operationId": "controlSystemVersion",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Controlsystemversion"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
   "components": {
     "schemas": {
       "CommitTurnRequest": {
+        "additionalProperties": false,
         "properties": {
-          "turnId": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 1,
-            "title": "Turnid"
-          },
-          "userMessage": {
-            "type": "string",
-            "maxLength": 32000,
-            "minLength": 1,
-            "title": "Usermessage"
-          },
           "assistantMessage": {
-            "type": "string",
             "maxLength": 64000,
-            "title": "Assistantmessage"
+            "title": "Assistantmessage",
+            "type": "string"
           },
           "occurredAt": {
-            "type": "string",
             "format": "date-time",
-            "title": "Occurredat"
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "turnId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Turnid",
+            "type": "string"
+          },
+          "userMessage": {
+            "maxLength": 32000,
+            "minLength": 1,
+            "title": "Usermessage",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "turnId",
           "userMessage",
           "assistantMessage",
           "occurredAt"
         ],
-        "title": "CommitTurnRequest"
+        "title": "CommitTurnRequest",
+        "type": "object"
       },
       "DeleteMemoryRequest": {
+        "additionalProperties": false,
         "properties": {
           "reason": {
-            "type": "string",
             "maxLength": 500,
             "minLength": 1,
-            "title": "Reason"
+            "title": "Reason",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "reason"
         ],
-        "title": "DeleteMemoryRequest"
+        "title": "DeleteMemoryRequest",
+        "type": "object"
       },
       "ExtractionRequest": {
+        "additionalProperties": false,
         "properties": {
-          "turnId": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 1,
-            "title": "Turnid"
-          },
-          "userMessage": {
-            "type": "string",
-            "maxLength": 32000,
-            "minLength": 1,
-            "title": "Usermessage"
-          },
           "assistantMessage": {
-            "type": "string",
             "maxLength": 64000,
-            "title": "Assistantmessage"
+            "title": "Assistantmessage",
+            "type": "string"
           },
           "occurredAt": {
-            "type": "string",
             "format": "date-time",
-            "title": "Occurredat"
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "turnId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Turnid",
+            "type": "string"
+          },
+          "userMessage": {
+            "maxLength": 32000,
+            "minLength": 1,
+            "title": "Usermessage",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "turnId",
           "userMessage",
           "assistantMessage",
           "occurredAt"
         ],
-        "title": "ExtractionRequest"
+        "title": "ExtractionRequest",
+        "type": "object"
       },
       "HTTPValidationError": {
         "properties": {
@@ -762,54 +93,68 @@
             "items": {
               "$ref": "#/components/schemas/ValidationError"
             },
-            "type": "array",
-            "title": "Detail"
+            "title": "Detail",
+            "type": "array"
           }
         },
-        "type": "object",
-        "title": "HTTPValidationError"
+        "title": "HTTPValidationError",
+        "type": "object"
       },
       "PrepareContextRequest": {
+        "additionalProperties": false,
         "properties": {
-          "query": {
-            "type": "string",
-            "maxLength": 16000,
-            "minLength": 1,
-            "title": "Query"
-          },
           "maxContextTokens": {
-            "type": "integer",
             "maximum": 64000.0,
             "minimum": 1.0,
-            "title": "Maxcontexttokens"
+            "title": "Maxcontexttokens",
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "query",
           "maxContextTokens"
         ],
-        "title": "PrepareContextRequest"
+        "title": "PrepareContextRequest",
+        "type": "object"
       },
       "SearchRequest": {
+        "additionalProperties": false,
         "properties": {
           "query": {
-            "type": "string",
+            "default": "",
             "maxLength": 16000,
             "title": "Query",
-            "default": ""
+            "type": "string"
+          },
+          "topK": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topk"
           },
           "types": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string",
                   "enum": [
                     "USER_PREFERENCE",
                     "STABLE_FACT",
                     "USER_CONSTRAINT"
-                  ]
+                  ],
+                  "type": "string"
                 },
                 "type": "array"
               },
@@ -818,27 +163,20 @@
               }
             ],
             "title": "Types"
-          },
-          "topK": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 100.0,
-                "minimum": 1.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topk"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "SearchRequest"
+        "title": "SearchRequest",
+        "type": "object"
       },
       "ValidationError": {
         "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
           "loc": {
             "items": {
               "anyOf": [
@@ -850,38 +188,707 @@
                 }
               ]
             },
-            "type": "array",
-            "title": "Location"
+            "title": "Location",
+            "type": "array"
           },
           "msg": {
-            "type": "string",
-            "title": "Message"
+            "title": "Message",
+            "type": "string"
           },
           "type": {
-            "type": "string",
-            "title": "Error Type"
+            "title": "Error Type",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "loc",
           "msg",
           "type"
         ],
-        "title": "ValidationError"
+        "title": "ValidationError",
+        "type": "object"
       }
     },
     "securitySchemes": {
-      "ServiceCredential": {
-        "type": "http",
-        "description": "GenB-issued service credential",
-        "scheme": "bearer"
-      },
       "ActorToken": {
-        "type": "apiKey",
         "description": "GenB-issued signed Actor Token",
         "in": "header",
-        "name": "X-GenB-Actor-Token"
+        "name": "X-GenB-Actor-Token",
+        "type": "apiKey"
+      },
+      "ServiceCredential": {
+        "description": "GenB-issued service credential",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "GenB Control System",
+    "version": "0.2.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/control-system/long-term-memory/extractions": {
+      "post": {
+        "operationId": "requestLongTermExtraction",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 16,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Traceparent"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Requestlongtermextraction",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "ServiceCredential": []
+          },
+          {
+            "ActorToken": []
+          }
+        ],
+        "summary": "Request Long Term Extraction"
+      }
+    },
+    "/api/v1/control-system/long-term-memory/extractions/{extractionId}": {
+      "get": {
+        "operationId": "getLongTermExtraction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "extractionId",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Extractionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Traceparent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Getlongtermextraction",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "ServiceCredential": []
+          },
+          {
+            "ActorToken": []
+          }
+        ],
+        "summary": "Get Long Term Extraction"
+      }
+    },
+    "/api/v1/control-system/long-term-memory/memories/{memoryId}:delete": {
+      "post": {
+        "operationId": "deleteLongTermMemory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Traceparent"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteMemoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Deletelongtermmemory",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "ServiceCredential": []
+          },
+          {
+            "ActorToken": []
+          }
+        ],
+        "summary": "Delete Long Term Memory"
+      }
+    },
+    "/api/v1/control-system/long-term-memory/search": {
+      "post": {
+        "operationId": "searchLongTermMemory",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Traceparent"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Searchlongtermmemory",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "ServiceCredential": []
+          },
+          {
+            "ActorToken": []
+          }
+        ],
+        "summary": "Search Long Term Memory"
+      }
+    },
+    "/api/v1/control-system/short-term-memory/context:prepare": {
+      "post": {
+        "operationId": "prepareShortTermContext",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Traceparent"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareContextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Prepareshorttermcontext",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "ServiceCredential": []
+          },
+          {
+            "ActorToken": []
+          }
+        ],
+        "summary": "Prepare Context"
+      }
+    },
+    "/api/v1/control-system/short-term-memory/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "clearShortTermSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Sessionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Traceparent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Clearshorttermsession",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "ServiceCredential": []
+          },
+          {
+            "ActorToken": []
+          }
+        ],
+        "summary": "Clear Session"
+      }
+    },
+    "/api/v1/control-system/short-term-memory/turns:commit": {
+      "post": {
+        "operationId": "commitShortTermTurn",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 16,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Request-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "traceparent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Traceparent"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitTurnRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Commitshorttermturn",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "ServiceCredential": []
+          },
+          {
+            "ActorToken": []
+          }
+        ],
+        "summary": "Commit Turn"
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "controlSystemLive",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Controlsystemlive",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live"
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "controlSystemReady",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready"
+      }
+    },
+    "/version": {
+      "get": {
+        "operationId": "controlSystemVersion",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Controlsystemversion",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Version"
       }
     }
   }

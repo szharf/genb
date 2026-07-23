@@ -35,3 +35,17 @@ def test_every_alert_has_severity_summary_and_runbook() -> None:
     ):
         assert metric in content
 
+
+def test_python_sboms_are_resolved_cyclonedx_without_known_vulnerabilities() -> None:
+    for name, minimum_components in (
+        ("runtime-sbom.cdx.json", 15),
+        ("control-sbom.cdx.json", 20),
+    ):
+        sbom = json.loads((ROOT / name).read_text(encoding="utf-8"))
+        assert sbom["bomFormat"] == "CycloneDX"
+        assert len(sbom["components"]) >= minimum_components
+        assert "vulnerabilities" not in sbom
+        components = {item["name"]: item["version"] for item in sbom["components"]}
+        assert components["starlette"] == "1.3.1"
+        if name.startswith("control"):
+            assert components["cryptography"] == "48.0.1"

@@ -66,7 +66,7 @@ def create_local_app() -> FastAPI:
             "SHORT_TERM_MAX_TURNS", 50, minimum=1, maximum=500
         ),
     )
-    app.add_event_handler("shutdown", redis_client.aclose)
+    app.router.add_event_handler("shutdown", redis_client.aclose)
     return app
 
 
@@ -150,12 +150,12 @@ def create_genb_connected_app() -> FastAPI:
         protection_settings=_http_protection_settings(),
         metrics_token=_metrics_token(environment),
     )
-    app.add_event_handler("shutdown", redis_client.aclose)
-    app.add_event_handler("shutdown", genb_client.close)
+    app.router.add_event_handler("shutdown", redis_client.aclose)
+    app.router.add_event_handler("shutdown", genb_client.close)
     if runtime_client is not None:
-        app.add_event_handler("shutdown", runtime_client.aclose)
+        app.router.add_event_handler("shutdown", runtime_client.aclose)
     if long_term_repository is not None:
-        app.add_event_handler("shutdown", long_term_repository.close)
+        app.router.add_event_handler("shutdown", long_term_repository.close)
     return app
 
 
