@@ -69,3 +69,36 @@ class RuntimeConfigProblem(ControlSystemProblem):
             detail="A valid published Short-term Memory config is required.",
             request_id=request_id,
         )
+
+
+class LongTermIdempotencyProblem(ControlSystemProblem):
+    def __init__(self, request_id: str) -> None:
+        super().__init__(
+            status=409,
+            code="LONG_TERM_IDEMPOTENCY_CONFLICT",
+            title="Long-term Memory idempotency key conflicts",
+            detail="The Idempotency-Key was already used for different content.",
+            request_id=request_id,
+        )
+
+
+class LongTermMemoryNotFoundProblem(ControlSystemProblem):
+    def __init__(self, request_id: str) -> None:
+        super().__init__(
+            status=404,
+            code="LONG_TERM_MEMORY_NOT_FOUND",
+            title="Long-term Memory resource was not found",
+            detail="The requested resource does not exist in the caller scope.",
+            request_id=request_id,
+        )
+
+
+class LongTermMemoryUnavailableProblem(ControlSystemProblem):
+    def __init__(self, request_id: str) -> None:
+        super().__init__(
+            status=503,
+            code="LONG_TERM_MEMORY_UNAVAILABLE",
+            title="Long-term Memory is unavailable",
+            detail="Long-term Memory cannot process the request safely.",
+            request_id=request_id,
+        )

@@ -1,12 +1,16 @@
 # GenB Control System Service
 
-Control System 执行面服务。Iteration 9 实现 Short-term Memory 的第一条真实纵向切片，Iteration 10 接入GenB身份，Iteration 12补齐已发布动态配置、会话摘要和可观测性。不存在额外的 Memory Runtime Service 层，也不依赖旧 `bank-agent-runtime`/SDK。
+Control System 执行面服务。Iteration 9—12完成Short-term Memory、GenB身份、动态配置、摘要和可观测性；Iteration 13完成结构化Long-term Memory一期。不存在额外的 Memory Runtime Service 层，也不依赖旧 `bank-agent-runtime`/SDK。
 
 ## 已实现
 
 - `POST /api/v1/control-system/short-term-memory/turns:commit`
 - `POST /api/v1/control-system/short-term-memory/context:prepare`
 - `DELETE /api/v1/control-system/short-term-memory/sessions/{sessionId}`
+- `POST /api/v1/control-system/long-term-memory/extractions`
+- `GET /api/v1/control-system/long-term-memory/extractions/{extractionId}`
+- `POST /api/v1/control-system/long-term-memory/search`
+- `POST /api/v1/control-system/long-term-memory/memories/{memoryId}:delete`
 - 服务凭证 + RS256 Actor Token 双凭证验证。
 - GenB HTTP内省Adapter与按`kid`选择公钥的JWKS Adapter；依赖异常fail-closed。
 - tenant/user/agent/session 四维隔离。
@@ -22,7 +26,31 @@ Control System 执行面服务。Iteration 9 实现 Short-term Memory 的第一�
 - `CONTROL_SYSTEM_IDENTITY_ADAPTER=local`：只允许`APP_ENV=local|test`，使用本地凭证文件和RSA公钥。
 - `CONTROL_SYSTEM_IDENTITY_ADAPTER=genb`：通过`GENB_BASE_URL`调用GenB内省和JWKS Interface；生产环境强制HTTPS。
 - 两种模式都强制服务凭证与Actor Token的agent一致，并使用`component:short-term-memory:<action>` scope。
-- 当前不缓存内省结果或JWKS，GenB不可用时请求立即fail-closed。组件配置只按不可变版本ID短缓存。Long-term Memory仍属下一阶段。
+- 当前不缓存内省结果或JWKS，GenB不可用时请求立即fail-closed。组件配置只按不可变版本ID短缓存。
+
+## Long-term Memory
+
+- 一期只允许`USER_PREFERENCE`、`STABLE_FACT`、`USER_CONSTRAINT`，不是完整RAG知识库。
+- PostgreSQL Adapter按tenant/user/agent完整scope读写；提取任务、事件、记忆和删除审计共4张表，实际建表无物理外键。
+- Worker使用持久化PENDING任务、60秒租约、过期恢复、指数退避和有限重试；非法结构化输出转为`NO_WRITE`，临时Inference故障最终进入`DEAD`。
+- 输入持久化前脱敏，模型候选写入前再次做类型、置信度、长度和敏感内容过滤。
+- `CONTROL_SYSTEM_POSTGRES_DSN`配置后启用PostgreSQL和后台Worker；production环境必填。
+- `GENB_BASE_URL`必须是主机根地址（例如`http://127.0.0.1:8581`），不要附加`/api`，内部Adapter路径已经包含该前缀。
+
+发布配置示例：
+
+```json
+{
+  "enabledTypes": ["USER_PREFERENCE", "STABLE_FACT", "USER_CONSTRAINT"],
+  "autoExtractionEnabled": true,
+  "confidenceThreshold": 0.8,
+  "retentionDays": 180,
+  "topK": 5,
+  "maxTopK": 20,
+  "modelAlias": "memory-extraction-default",
+  "maxAttempts": 3
+}
+```
 
 ## Short-term Memory发布配置
 

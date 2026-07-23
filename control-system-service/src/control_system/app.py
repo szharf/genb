@@ -19,6 +19,19 @@ from .component_config import (
     StaticShortTermMemoryConfigProvider,
 )
 from .identity import IdentityVerifier, InvocationIdentity
+from .long_term_memory.config import (
+    LongTermMemoryConfigProvider,
+    LongTermMemoryRuntimeConfig,
+    StaticLongTermMemoryConfigProvider,
+)
+from .long_term_memory.extraction import MemoryExtractionModel, UnavailableExtractionModel
+from .long_term_memory.models import DeleteMemoryRequest, ExtractionRequest, SearchRequest
+from .long_term_memory.repository import (
+    InMemoryLongTermMemoryRepository,
+    LongTermMemoryRepository,
+)
+from .long_term_memory.service import LongTermMemoryService
+from .long_term_memory.worker import ExtractionWorkerRunner
 from .short_term_memory.models import (
     CommitTurnRequest,
     ConversationTurn,
@@ -30,6 +43,7 @@ from .summary import SummaryGenerator
 from .telemetry import MetricsRegistry
 
 COMPONENT_CODE = "SHORT_TERM_MEMORY"
+LONG_TERM_COMPONENT_CODE = "LONG_TERM_MEMORY"
 IMPLEMENTATION_CODE = "control-memory-v1"
 INTERFACE_VERSION = "1.0.0"
 EVENT_LOGGER = logging.getLogger("control_system.events")
@@ -48,6 +62,12 @@ def create_app(
     config_provider: ShortTermMemoryConfigProvider | None = None,
     summary_generator: SummaryGenerator | None = None,
     metrics: MetricsRegistry | None = None,
+    long_term_repository: LongTermMemoryRepository | None = None,
+    long_term_config_provider: LongTermMemoryConfigProvider | None = None,
+    extraction_model: MemoryExtractionModel | None = None,
+    process_extractions_inline: bool = False,
+    run_extraction_worker: bool = False,
+    extraction_worker_poll_seconds: float = 1.0,
 ) -> FastAPI:
     app = FastAPI(title="GenB Control System", version="0.2.0")
     metric_registry = metrics or MetricsRegistry()
@@ -67,6 +87,38 @@ def create_app(
         metrics=metric_registry,
     )
     app.state.metrics = metric_registry
+    active_long_term_repository = (
+        long_term_repository or InMemoryLongTermMemoryRepository()
+    )
+    long_term = LongTermMemoryService(
+        active_long_term_repository,
+        config_provider=long_term_config_provider
+        or StaticLongTermMemoryConfigProvider(
+            LongTermMemoryRuntimeConfig(
+                enabled_types=frozenset(
+                    {"USER_PREFERENCE", "STABLE_FACT", "USER_CONSTRAINT"}
+                ),
+                auto_extraction_enabled=False,
+                confidence_threshold=0.8,
+                retention_days=180,
+                top_k=5,
+                max_top_k=20,
+                model_alias="memory-extraction-default",
+            )
+        ),
+        extraction_model=extraction_model or UnavailableExtractionModel(),
+        metrics=metric_registry,
+    )
+    app.state.long_term_memory = long_term
+    if run_extraction_worker:
+        extraction_runner = ExtractionWorkerRunner(
+            long_term.worker,
+            active_long_term_repository,
+            poll_seconds=extraction_worker_poll_seconds,
+        )
+        app.state.extraction_worker = extraction_runner
+        app.add_event_handler("startup", extraction_runner.start)
+        app.add_event_handler("shutdown", extraction_runner.stop)
 
     @app.middleware("http")
     async def measure_http(request: Request, call_next):
@@ -154,7 +206,10 @@ def create_app(
             },
         )
 
-    def require_identity(required_scope: str) -> Callable[..., InvocationIdentity]:
+    def require_identity(
+        required_scope: str,
+        required_component: str = COMPONENT_CODE,
+    ) -> Callable[..., InvocationIdentity]:
         def verify(
             service_credential: HTTPAuthorizationCredentials | None = Security(
                 service_credential_scheme
@@ -175,7 +230,7 @@ def create_app(
             identity = identity_verifier.verify(
                 service_token=service_credential.credentials,
                 actor_token=actor_token,
-                required_component=COMPONENT_CODE,
+                required_component=required_component,
                 required_scope=required_scope,
                 request_id=effective_request_id,
             )
@@ -294,6 +349,127 @@ def create_app(
             "meta": _meta(identity.request_id),
         }
 
+    @app.post(
+        "/api/v1/control-system/long-term-memory/extractions",
+        operation_id="requestLongTermExtraction",
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    async def request_long_term_extraction(
+        request: ExtractionRequest,
+        background_tasks: BackgroundTasks,
+        idempotency_key: str = Header(
+            alias="Idempotency-Key", min_length=16, max_length=128
+        ),
+        identity: InvocationIdentity = Depends(
+            require_identity(
+                "component:long-term-memory:write", LONG_TERM_COMPONENT_CODE
+            )
+        ),
+    ) -> dict[str, object]:
+        job, duplicate = await long_term.request_extraction(
+            identity, request, idempotency_key
+        )
+        if process_extractions_inline and not duplicate:
+            background_tasks.add_task(
+                long_term.worker.process,
+                job.extraction_id,
+                identity.request_id,
+                identity.trace_parent,
+            )
+        return {
+            "data": {
+                "extractionId": job.extraction_id,
+                "status": job.status,
+                "duplicate": duplicate,
+            },
+            "meta": _component_meta(identity.request_id, LONG_TERM_COMPONENT_CODE),
+        }
+
+    @app.get(
+        "/api/v1/control-system/long-term-memory/extractions/{extractionId}",
+        operation_id="getLongTermExtraction",
+    )
+    async def get_long_term_extraction(
+        extraction_id: str = Path(alias="extractionId", min_length=1, max_length=128),
+        identity: InvocationIdentity = Depends(
+            require_identity(
+                "component:long-term-memory:write", LONG_TERM_COMPONENT_CODE
+            )
+        ),
+    ) -> dict[str, object]:
+        job = await long_term.get_extraction(identity, extraction_id)
+        return {
+            "data": {
+                "extractionId": job.extraction_id,
+                "status": job.status,
+                "attemptCount": job.attempt_count,
+                "writtenCount": job.written_count,
+                "rejectedCount": job.rejected_count,
+                "model": job.model,
+                "errorCode": job.error_code,
+                "createdAt": job.created_at.isoformat(),
+                "updatedAt": job.updated_at.isoformat(),
+            },
+            "meta": _component_meta(identity.request_id, LONG_TERM_COMPONENT_CODE),
+        }
+
+    @app.post(
+        "/api/v1/control-system/long-term-memory/search",
+        operation_id="searchLongTermMemory",
+    )
+    async def search_long_term_memory(
+        request: SearchRequest,
+        identity: InvocationIdentity = Depends(
+            require_identity(
+                "component:long-term-memory:read", LONG_TERM_COMPONENT_CODE
+            )
+        ),
+    ) -> dict[str, object]:
+        items, applied_top_k = await long_term.search(
+            identity,
+            query=request.query,
+            requested_types=request.types,
+            requested_top_k=request.top_k,
+        )
+        return {
+            "data": {
+                "items": [
+                    {
+                        "memoryId": item.memory_id,
+                        "type": item.memory_type,
+                        "content": item.content,
+                        "confidence": item.confidence,
+                        "lastConfirmedAt": item.last_confirmed_at.isoformat(),
+                        "expiresAt": item.expires_at.isoformat(),
+                    }
+                    for item in items
+                ],
+                "appliedTopK": applied_top_k,
+            },
+            "meta": _component_meta(identity.request_id, LONG_TERM_COMPONENT_CODE),
+        }
+
+    @app.post(
+        "/api/v1/control-system/long-term-memory/memories/{memoryId}:delete",
+        operation_id="deleteLongTermMemory",
+    )
+    async def delete_long_term_memory(
+        request: DeleteMemoryRequest,
+        memory_id: str = Path(alias="memoryId", min_length=1, max_length=128),
+        identity: InvocationIdentity = Depends(
+            require_identity(
+                "component:long-term-memory:delete", LONG_TERM_COMPONENT_CODE
+            )
+        ),
+    ) -> dict[str, object]:
+        deleted = await long_term.delete_memory(
+            identity, memory_id, reason=request.reason
+        )
+        return {
+            "data": {"deleted": deleted},
+            "meta": _component_meta(identity.request_id, LONG_TERM_COMPONENT_CODE),
+        }
+
     @app.get("/health/live", operation_id="controlSystemLive")
     async def live() -> dict[str, str]:
         return {"status": "UP"}
@@ -341,6 +517,15 @@ def _meta(request_id: str) -> dict[str, object]:
     return {
         "requestId": request_id,
         "componentCode": COMPONENT_CODE,
+        "implementationCode": IMPLEMENTATION_CODE,
+        "interfaceVersion": INTERFACE_VERSION,
+    }
+
+
+def _component_meta(request_id: str, component_code: str) -> dict[str, object]:
+    return {
+        "requestId": request_id,
+        "componentCode": component_code,
         "implementationCode": IMPLEMENTATION_CODE,
         "interfaceVersion": INTERFACE_VERSION,
     }

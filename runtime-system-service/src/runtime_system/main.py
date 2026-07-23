@@ -10,6 +10,7 @@ from .app import (
     create_app,
 )
 from .identity import StaticTokenIdentityVerifier
+from .provider import FakeModelProvider
 from .routing import build_provider_from_document
 
 
@@ -34,6 +35,13 @@ def build_app():
             document,
             environment=os.environ,
         )
+    fake_structured = os.getenv("RUNTIME_FAKE_STRUCTURED_CONTENT")
+    if fake_structured:
+        if environment == "production":
+            raise RuntimeError("RUNTIME_FAKE_STRUCTURED_CONTENT is forbidden in production")
+        if len(fake_structured) > 131_072:
+            raise RuntimeError("RUNTIME_FAKE_STRUCTURED_CONTENT is too large")
+        provider = FakeModelProvider(structured_content=fake_structured)
     return create_app(
         identity_verifier=StaticTokenIdentityVerifier(tokens=tokens),
         provider=provider,

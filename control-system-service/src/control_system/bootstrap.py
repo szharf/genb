@@ -9,6 +9,9 @@ from redis.asyncio import Redis
 
 from .app import create_app
 from .component_config import GenBShortTermMemoryConfigProvider
+from .long_term_memory.config import GenBLongTermMemoryConfigProvider
+from .long_term_memory.extraction import RuntimeInferenceExtractionModel
+from .long_term_memory.postgres_repository import PostgreSQLLongTermMemoryRepository
 from .identity import (
     CompositeIdentityVerifier,
     RsaActorTokenVerifier,
@@ -88,6 +91,20 @@ def create_genb_connected_app() -> FastAPI:
     )
     redis_client = _redis_client()
     summary_generator, runtime_client = _runtime_summary_generator(environment)
+    postgres_dsn = os.getenv("CONTROL_SYSTEM_POSTGRES_DSN", "")
+    if environment == "production" and not postgres_dsn:
+        raise RuntimeError("CONTROL_SYSTEM_POSTGRES_DSN is required in production")
+    long_term_repository = (
+        PostgreSQLLongTermMemoryRepository(postgres_dsn) if postgres_dsn else None
+    )
+    extraction_model = (
+        RuntimeInferenceExtractionModel(
+            client=runtime_client,
+            service_token=_required("CONTROL_SYSTEM_RUNTIME_TOKEN"),
+        )
+        if runtime_client is not None
+        else None
+    )
     app = create_app(
         identity_verifier=CompositeIdentityVerifier(
             service_credentials=GenBServiceCredentialIntrospector(
@@ -115,11 +132,27 @@ def create_genb_connected_app() -> FastAPI:
             ),
         ),
         summary_generator=summary_generator,
+        long_term_repository=long_term_repository,
+        long_term_config_provider=GenBLongTermMemoryConfigProvider(
+            client=genb_client,
+            config_url_template="/api/v1/internal/component-configs/{config_id}",
+            internal_token=internal_token,
+            cache_ttl_seconds=_bounded_float(
+                "GENB_CONFIG_CACHE_TTL_SECONDS", 30.0, minimum=1.0, maximum=3600.0
+            ),
+        ),
+        extraction_model=extraction_model,
+        run_extraction_worker=long_term_repository is not None,
+        extraction_worker_poll_seconds=_bounded_float(
+            "LONG_TERM_WORKER_POLL_SECONDS", 1.0, minimum=0.1, maximum=60.0
+        ),
     )
     app.add_event_handler("shutdown", redis_client.aclose)
     app.add_event_handler("shutdown", genb_client.close)
     if runtime_client is not None:
         app.add_event_handler("shutdown", runtime_client.aclose)
+    if long_term_repository is not None:
+        app.add_event_handler("shutdown", long_term_repository.close)
     return app
 
 

@@ -45,3 +45,19 @@ class ChatResult:
     context_message_count: int
     committed: bool
     warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ExtractionStatus:
+    extraction_id: str
+    status: str
+    written_count: int
+    rejected_count: int
+
+
+@dataclass(frozen=True)
+class LongTermMemoryItem:
+    memory_id: str
+    memory_type: str
+    content: str
+    confidence: float

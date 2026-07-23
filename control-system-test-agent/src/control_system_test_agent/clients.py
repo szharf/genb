@@ -11,6 +11,8 @@ from .models import (
     ComponentEndpoint,
     ContextMessage,
     PreparedContext,
+    ExtractionStatus,
+    LongTermMemoryItem,
 )
 
 
@@ -161,6 +163,121 @@ class ControlSystemClient:
             raise _invalid_payload("clear session", request_id)
         return cleared
 
+    async def request_long_term_extraction(
+        self,
+        *,
+        service_credential: str,
+        actor_token: str,
+        turn_id: str,
+        user_message: str,
+        assistant_message: str,
+        occurred_at: str,
+        request_id: str,
+        idempotency_key: str,
+    ) -> str:
+        headers = _identity_headers(service_credential, actor_token, request_id)
+        headers["Idempotency-Key"] = idempotency_key
+        response = await _post(
+            self._client,
+            f"{self._base_url}/api/v1/control-system/long-term-memory/extractions",
+            operation="request long-term extraction",
+            request_id=request_id,
+            headers=headers,
+            json={
+                "turnId": turn_id,
+                "userMessage": user_message,
+                "assistantMessage": assistant_message,
+                "occurredAt": occurred_at,
+            },
+        )
+        data = _required_object(_object(response, "request long-term extraction", request_id), "data")
+        return _required_string(data, "extractionId")
+
+    async def get_long_term_extraction(
+        self,
+        *,
+        service_credential: str,
+        actor_token: str,
+        extraction_id: str,
+        request_id: str,
+    ) -> ExtractionStatus:
+        response = await _get(
+            self._client,
+            f"{self._base_url}/api/v1/control-system/long-term-memory/extractions/{quote(extraction_id, safe='')}",
+            operation="get long-term extraction",
+            request_id=request_id,
+            headers=_identity_headers(service_credential, actor_token, request_id),
+        )
+        data = _required_object(_object(response, "get long-term extraction", request_id), "data")
+        written = data.get("writtenCount")
+        rejected = data.get("rejectedCount")
+        if not isinstance(written, int) or not isinstance(rejected, int):
+            raise _invalid_payload("get long-term extraction", request_id)
+        return ExtractionStatus(
+            extraction_id=_required_string(data, "extractionId"),
+            status=_required_string(data, "status"),
+            written_count=written,
+            rejected_count=rejected,
+        )
+
+    async def search_long_term_memory(
+        self,
+        *,
+        service_credential: str,
+        actor_token: str,
+        query: str,
+        request_id: str,
+        top_k: int = 10,
+    ) -> tuple[LongTermMemoryItem, ...]:
+        response = await _post(
+            self._client,
+            f"{self._base_url}/api/v1/control-system/long-term-memory/search",
+            operation="search long-term memory",
+            request_id=request_id,
+            headers=_identity_headers(service_credential, actor_token, request_id),
+            json={"query": query, "topK": top_k},
+        )
+        data = _required_object(_object(response, "search long-term memory", request_id), "data")
+        raw_items = data.get("items")
+        if not isinstance(raw_items, list):
+            raise _invalid_payload("search long-term memory", request_id)
+        items: list[LongTermMemoryItem] = []
+        for raw in raw_items:
+            item = _as_mapping(raw)
+            confidence = item.get("confidence")
+            if not isinstance(confidence, (int, float)):
+                raise _invalid_payload("search long-term memory", request_id)
+            items.append(LongTermMemoryItem(
+                memory_id=_required_string(item, "memoryId"),
+                memory_type=_required_string(item, "type"),
+                content=_required_string(item, "content"),
+                confidence=float(confidence),
+            ))
+        return tuple(items)
+
+    async def delete_long_term_memory(
+        self,
+        *,
+        service_credential: str,
+        actor_token: str,
+        memory_id: str,
+        reason: str,
+        request_id: str,
+    ) -> bool:
+        response = await _post(
+            self._client,
+            f"{self._base_url}/api/v1/control-system/long-term-memory/memories/{quote(memory_id, safe='')}:delete",
+            operation="delete long-term memory",
+            request_id=request_id,
+            headers=_identity_headers(service_credential, actor_token, request_id),
+            json={"reason": reason},
+        )
+        data = _required_object(_object(response, "delete long-term memory", request_id), "data")
+        deleted = data.get("deleted")
+        if not isinstance(deleted, bool):
+            raise _invalid_payload("delete long-term memory", request_id)
+        return deleted
+
 
 async def _post(
     client: httpx.AsyncClient,
@@ -177,6 +294,22 @@ async def _post(
         raise RemoteCallError(
             operation=operation, status_code=None, request_id=request_id
         ) from exc
+    _raise_for_status(response, operation, request_id)
+    return response
+
+
+async def _get(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    operation: str,
+    request_id: str | None,
+    headers: Mapping[str, str],
+) -> httpx.Response:
+    try:
+        response = await client.get(url, headers=headers)
+    except httpx.HTTPError as exc:
+        raise RemoteCallError(operation=operation, status_code=None, request_id=request_id) from exc
     _raise_for_status(response, operation, request_id)
     return response
 

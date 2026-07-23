@@ -1,10 +1,11 @@
+import asyncio
 from datetime import UTC, datetime
 from typing import Protocol
 from uuid import uuid4
 
 from .clients import ControlSystemClient, GenBClient
 from .errors import RemoteCallError
-from .models import ChatResult, ContextMessage
+from .models import ChatResult, ContextMessage, ExtractionStatus, LongTermMemoryItem
 
 
 class Answerer(Protocol):
@@ -88,4 +89,56 @@ class TestAgent:
             context_message_count=len(context),
             committed=committed,
             warnings=tuple(warnings),
+        )
+
+    async def store_long_term(
+        self, *, user_token: str, session_id: str, message: str
+    ) -> ExtractionStatus:
+        component_session = await self._genb.issue_component_session(
+            user_token=user_token,
+            service_credential=self._service_credential,
+            agent_id=self._agent_id,
+            session_id=session_id,
+            requested_components=("LONG_TERM_MEMORY",),
+        )
+        unique = uuid4().hex
+        extraction_id = await self._control.request_long_term_extraction(
+            service_credential=self._service_credential,
+            actor_token=component_session.actor_token,
+            turn_id=f"turn_{unique}",
+            user_message=message,
+            assistant_message="已记录该长期信息。",
+            occurred_at=datetime.now(UTC).isoformat(),
+            request_id=f"req_{uuid4().hex}",
+            idempotency_key=f"idem_{unique}",
+        )
+        for _ in range(30):
+            result = await self._control.get_long_term_extraction(
+                service_credential=self._service_credential,
+                actor_token=component_session.actor_token,
+                extraction_id=extraction_id,
+                request_id=f"req_{uuid4().hex}",
+            )
+            if result.status in {"SUCCEEDED", "NO_WRITE", "FAILED", "DEAD"}:
+                return result
+            await asyncio.sleep(0.1)
+        raise RemoteCallError(
+            operation="wait long-term extraction", status_code=504, request_id=None
+        )
+
+    async def recall_long_term(
+        self, *, user_token: str, session_id: str, query: str
+    ) -> tuple[LongTermMemoryItem, ...]:
+        component_session = await self._genb.issue_component_session(
+            user_token=user_token,
+            service_credential=self._service_credential,
+            agent_id=self._agent_id,
+            session_id=session_id,
+            requested_components=("LONG_TERM_MEMORY",),
+        )
+        return await self._control.search_long_term_memory(
+            service_credential=self._service_credential,
+            actor_token=component_session.actor_token,
+            query=query,
+            request_id=f"req_{uuid4().hex}",
         )

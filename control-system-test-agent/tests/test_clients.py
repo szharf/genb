@@ -157,3 +157,51 @@ async def test_network_timeout_is_mapped_without_exposing_request_data() -> None
     assert "user-token-private" not in rendered
     assert "private-session" not in rendered
     assert "private transport detail" not in rendered
+
+
+@pytest.mark.asyncio
+async def test_long_term_client_supports_extract_status_search_and_soft_delete() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        path = request.url.path
+        if path.endswith("/extractions"):
+            return httpx.Response(202, json={"data": {"extractionId": "ext-a", "status": "PENDING"}})
+        if path.endswith("/extractions/ext-a"):
+            return httpx.Response(200, json={"data": {
+                "extractionId": "ext-a", "status": "SUCCEEDED",
+                "writtenCount": 1, "rejectedCount": 0,
+            }})
+        if path.endswith("/search"):
+            return httpx.Response(200, json={"data": {"items": [{
+                "memoryId": "mem-a", "type": "USER_PREFERENCE",
+                "content": "prefers tea", "confidence": 0.95,
+            }]}})
+        return httpx.Response(200, json={"data": {"deleted": True}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        client = ControlSystemClient(http, "http://control.local")
+        extraction_id = await client.request_long_term_extraction(
+            service_credential="service-a", actor_token="actor-a", turn_id="turn-a",
+            user_message="I prefer tea", assistant_message="noted",
+            occurred_at="2026-07-24T00:00:00Z", request_id="req-a",
+            idempotency_key="idem-long-term-a",
+        )
+        status = await client.get_long_term_extraction(
+            service_credential="service-a", actor_token="actor-a",
+            extraction_id=extraction_id, request_id="req-b",
+        )
+        items = await client.search_long_term_memory(
+            service_credential="service-a", actor_token="actor-a",
+            query="tea", request_id="req-c",
+        )
+        deleted = await client.delete_long_term_memory(
+            service_credential="service-a", actor_token="actor-a", memory_id="mem-a",
+            reason="acceptance", request_id="req-d",
+        )
+
+    assert status.status == "SUCCEEDED" and status.written_count == 1
+    assert items[0].memory_type == "USER_PREFERENCE" and deleted is True
+    assert requests[0].headers["Idempotency-Key"] == "idem-long-term-a"
+    assert all(request.headers["X-GenB-Actor-Token"] == "actor-a" for request in requests)
