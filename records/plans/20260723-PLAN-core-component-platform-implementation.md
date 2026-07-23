@@ -410,10 +410,10 @@ Iteration 9不包含Long-term Memory、摘要、真实Runtime Inference、测试
 
 ### 完成标准
 
-- [ ] 独立使用JWKS可验证现有组件会话返回的Actor Token。
-- [ ] 内省有效/无效/过期/吊销矩阵和内部调用认证通过。
-- [ ] Control System真实Adapter身份链及fail-closed测试通过。
-- [ ] GenB、Control System全量回归、安全扫描、报告和精确提交完成。
+- [x] 独立使用JWKS可验证现有组件会话返回的Actor Token。
+- [x] 内省有效/无效/过期/吊销矩阵和内部调用认证通过。
+- [x] Control System真实Adapter身份链及fail-closed测试通过。
+- [x] GenB、Control System全量回归、安全扫描、报告和精确提交完成。
 
 ## 19. 提交策略
 
