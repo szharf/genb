@@ -361,7 +361,37 @@ Iteration 4完成M3治理状态闭环；下一迭代进入服务凭证和短时�
 
 Iteration 5完成M3机器身份和短时授权最小闭环，但不代表生产身份体系完成。正式数据面接入前必须补tenant来源、非对称签名/JWKS或工作负载身份，以及数据库迁移和密钥轮换演练。
 
-## 17. 提交策略
+## 17. 当前迭代（Iteration 9）
+
+### 目标
+
+进入M4，在新建的`control-system-service`中交付Short-term Memory首条真实HTTP纵向切片，让Control System开始拥有数据面实现，而不再只有GenB控制面记录。
+
+### 范围
+
+- RS256 Actor Token + 服务凭证双凭证Identity Module。
+- `turns:commit`、`context:prepare`、session clear三个Interface。
+- tenant/user/agent/session四维隔离、幂等、冲突、最近窗口预算和持久化前脱敏。
+- In-memory/Redis两个SessionStore Adapter，Redis使用Lua原子提交、TTL和HMAC键。
+- live/ready/version、OpenAPI、本地启动工厂和公开Interface/安全/集成测试。
+
+### 完成标准
+
+- [x] commit后同一作用域prepare可召回，四维任一变化均隔离。
+- [x] 双凭证、RS256签名、过期、agent/component/scope一致性在后端强制。
+- [x] 同幂等key同内容不重复写，不同内容返409。
+- [x] Redis原子写、TTL、HMAC键、清理和故障错误通过真实集成测试。
+- [x] 密码和Bearer Token在进入存储前脱敏，错误不泄露请求正文或连接信息。
+- [x] 旧Runtime SDK零依赖，OpenAPI与FastAPI导出完全一致。
+- [x] 16项自动测试和真实Redis验证通过，测试键残留为0。
+
+### 未解决的下一阶段门禁
+
+GenB Iteration 5当前签发的Component Session仍是派生对称密钥JWT，且claims尚无Control System设计需要的`tenantId/iss/aud/components`。Iteration 9因此只允许`local/test`使用本地凭证Adapter，`production`启动会fail-closed。下一Iteration必须先完成GenB非对称Actor Token/JWKS与服务凭证内省契约，才能做真实智能体联调。
+
+Iteration 9不包含Long-term Memory、摘要、真实Runtime Inference、测试智能体和管理端测试台。
+
+## 18. 提交策略
 
 - 当前根工作区存在大量历史未跟踪文件和子仓库改动，只精确暂存本计划、当前相关文档和新服务文件。
 - 不使用`git add .`，不提交日志、缓存、虚拟环境、构建产物或无关子仓库状态。
