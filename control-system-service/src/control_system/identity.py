@@ -86,64 +86,102 @@ class RsaActorTokenVerifier:
         self._leeway_seconds = leeway_seconds
 
     def verify(self, token: str) -> ActorIdentity | None:
-        try:
-            encoded_header, encoded_claims, encoded_signature = token.split(".")
-            header = json.loads(_decode_segment(encoded_header))
-            claims = json.loads(_decode_segment(encoded_claims))
-            if header != {"alg": "RS256", "typ": "JWT"}:
-                return None
-            self._public_key.verify(
-                _decode_bytes(encoded_signature),
-                f"{encoded_header}.{encoded_claims}".encode("ascii"),
-                padding.PKCS1v15(),
-                hashes.SHA256(),
-            )
-            if not self._claims_are_valid(claims):
-                return None
-            return ActorIdentity(
-                tenant_id=claims["tenantId"],
-                user_id=claims["userId"],
-                agent_id=claims["agentId"],
-                session_id=claims["sessionId"],
-                allowed_components=frozenset(claims["components"]),
-            )
-        except (
-            InvalidSignature,
-            KeyError,
-            TypeError,
-            ValueError,
-            json.JSONDecodeError,
+        return _verify_rsa_actor_token(
+            token,
+            public_key=self._public_key,
+            issuer=self._issuer,
+            audience=self._audience,
+            leeway_seconds=self._leeway_seconds,
+        )
+
+
+def _verify_rsa_actor_token(
+    token: str,
+    *,
+    public_key: rsa.RSAPublicKey,
+    issuer: str,
+    audience: str,
+    leeway_seconds: int,
+) -> ActorIdentity | None:
+    try:
+        encoded_header, encoded_claims, encoded_signature = token.split(".")
+        header = json.loads(_decode_segment(encoded_header))
+        claims = json.loads(_decode_segment(encoded_claims))
+        if not (
+            isinstance(header, dict)
+            and isinstance(claims, dict)
+            and header.get("alg") == "RS256"
+            and header.get("typ") in {None, "JWT"}
         ):
             return None
-
-    def _claims_are_valid(self, claims: dict[str, object]) -> bool:
-        now = datetime.now(UTC).timestamp()
-        audience = claims.get("aud")
-        audience_matches = (
-            audience == self._audience
-            or isinstance(audience, list)
-            and self._audience in audience
+        public_key.verify(
+            _decode_bytes(encoded_signature),
+            f"{encoded_header}.{encoded_claims}".encode("ascii"),
+            padding.PKCS1v15(),
+            hashes.SHA256(),
         )
-        identity_fields = [
-            claims.get("tenantId"),
-            claims.get("userId"),
-            claims.get("agentId"),
-            claims.get("sessionId"),
-        ]
-        components = claims.get("components")
-        return bool(
-            claims.get("iss") == self._issuer
-            and audience_matches
-            and isinstance(claims.get("exp"), (int, float))
-            and now <= float(claims["exp"]) + self._leeway_seconds
-            and isinstance(claims.get("nbf"), (int, float))
-            and now + self._leeway_seconds >= float(claims["nbf"])
-            and all(isinstance(value, str) and value for value in identity_fields)
-            and re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", str(claims["sessionId"]))
-            and isinstance(components, list)
-            and all(isinstance(value, str) and value for value in components)
+        if not _claims_are_valid(
+            claims,
+            issuer=issuer,
+            audience=audience,
+            leeway_seconds=leeway_seconds,
+        ):
+            return None
+        return ActorIdentity(
+            tenant_id=claims["tenantId"],
+            user_id=claims["userId"],
+            agent_id=claims["agentId"],
+            session_id=claims["sessionId"],
+            allowed_components=frozenset(claims["components"]),
         )
+    except (
+        InvalidSignature,
+        KeyError,
+        TypeError,
+        ValueError,
+        json.JSONDecodeError,
+    ):
+        return None
 
+
+def _claims_are_valid(
+    claims: dict[str, object],
+    *,
+    issuer: str,
+    audience: str,
+    leeway_seconds: int,
+) -> bool:
+    now = datetime.now(UTC).timestamp()
+    token_audience = claims.get("aud")
+    audience_matches = (
+        token_audience == audience
+        or isinstance(token_audience, list)
+        and audience in token_audience
+    )
+    identity_fields = [
+        claims.get("tenantId"),
+        claims.get("userId"),
+        claims.get("agentId"),
+        claims.get("sessionId"),
+    ]
+    components = claims.get("components")
+    return bool(
+        claims.get("iss") == issuer
+        and audience_matches
+        and claims.get("sub") == claims.get("userId")
+        and isinstance(claims.get("iat"), (int, float))
+        and now + leeway_seconds >= float(claims["iat"])
+        and isinstance(claims.get("exp"), (int, float))
+        and now <= float(claims["exp"]) + leeway_seconds
+        and isinstance(claims.get("nbf"), (int, float))
+        and now + leeway_seconds >= float(claims["nbf"])
+        and float(claims["exp"]) >= float(claims["nbf"])
+        and 0 < float(claims["exp"]) - float(claims["iat"]) <= 900
+        and all(isinstance(value, str) and value for value in identity_fields)
+        and re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", str(claims["sessionId"]))
+        and isinstance(components, list)
+        and all(isinstance(value, str) and value for value in components)
+    )
 
 class CompositeIdentityVerifier:
     def __init__(

@@ -19,7 +19,10 @@ def test_caller_can_commit_a_turn_and_prepare_the_same_session_context() -> None
         session_id="session-a",
         service_credential_id="credential-a",
         allowed_components=frozenset({"SHORT_TERM_MEMORY"}),
-        scopes=frozenset({"short-term:read", "short-term:write"}),
+        scopes=frozenset({
+            "component:short-term-memory:read",
+            "component:short-term-memory:write",
+        }),
         request_id="fixture-request",
     )
     app = create_app(
@@ -111,7 +114,7 @@ def test_same_idempotency_key_rejects_a_different_turn() -> None:
         session_id="session-a",
         service_credential_id="credential-a",
         allowed_components=frozenset({"SHORT_TERM_MEMORY"}),
-        scopes=frozenset({"short-term:write"}),
+        scopes=frozenset({"component:short-term-memory:write"}),
         request_id="fixture-request",
     )
     app = create_app(
@@ -165,7 +168,11 @@ def test_clear_session_is_idempotent_and_only_clears_the_signed_session() -> Non
         service_credential_id="credential-a",
         allowed_components=frozenset({"SHORT_TERM_MEMORY"}),
         scopes=frozenset(
-            {"short-term:read", "short-term:write", "short-term:delete"}
+            {
+                "component:short-term-memory:read",
+                "component:short-term-memory:write",
+                "component:short-term-memory:delete",
+            }
         ),
         request_id="fixture-a",
     )
@@ -238,7 +245,10 @@ def test_commit_redacts_passwords_before_they_are_retrievable() -> None:
         session_id="session-secret",
         service_credential_id="credential-a",
         allowed_components=frozenset({"SHORT_TERM_MEMORY"}),
-        scopes=frozenset({"short-term:read", "short-term:write"}),
+        scopes=frozenset({
+            "component:short-term-memory:read",
+            "component:short-term-memory:write",
+        }),
         request_id="fixture-request",
     )
     app = create_app(
@@ -289,7 +299,10 @@ def test_prepare_is_isolated_by_tenant_user_agent_and_session() -> None:
         session_id="session-a",
         service_credential_id="credential-a",
         allowed_components=frozenset({"SHORT_TERM_MEMORY"}),
-        scopes=frozenset({"short-term:read", "short-term:write"}),
+        scopes=frozenset({
+            "component:short-term-memory:read",
+            "component:short-term-memory:write",
+        }),
         request_id="fixture-origin",
     )
     identities = {
@@ -351,7 +364,10 @@ def test_prepare_keeps_the_latest_messages_within_the_requested_budget() -> None
         session_id="session-budget",
         service_credential_id="credential-a",
         allowed_components=frozenset({"SHORT_TERM_MEMORY"}),
-        scopes=frozenset({"short-term:read", "short-term:write"}),
+        scopes=frozenset({
+            "component:short-term-memory:read",
+            "component:short-term-memory:write",
+        }),
         request_id="fixture-budget",
     )
     app = create_app(
@@ -409,7 +425,7 @@ def test_store_failure_returns_dependency_problem_without_internal_details() -> 
         session_id="session-a",
         service_credential_id="credential-a",
         allowed_components=frozenset({"SHORT_TERM_MEMORY"}),
-        scopes=frozenset({"short-term:read"}),
+        scopes=frozenset({"component:short-term-memory:read"}),
         request_id="fixture-failure",
     )
     app = create_app(

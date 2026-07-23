@@ -1,7 +1,9 @@
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
+import httpx
 from fastapi import FastAPI
 from redis.asyncio import Redis
 
@@ -11,6 +13,10 @@ from .identity import (
     RsaActorTokenVerifier,
     ServiceCredential,
     StaticServiceCredentialIntrospector,
+)
+from .genb_identity import (
+    GenBJwksActorTokenVerifier,
+    GenBServiceCredentialIntrospector,
 )
 from .short_term_memory.redis_store import RedisSessionStore
 
@@ -55,6 +61,57 @@ def create_local_app() -> FastAPI:
         ),
     )
     app.add_event_handler("shutdown", redis_client.aclose)
+    return app
+
+
+def create_genb_connected_app() -> FastAPI:
+    environment = os.getenv("APP_ENV", "local")
+    genb_base_url = _required("GENB_BASE_URL").rstrip("/")
+    if environment == "production" and urlparse(genb_base_url).scheme != "https":
+        raise RuntimeError("GENB_BASE_URL must use HTTPS in production")
+    internal_token = _required("CONTROL_SYSTEM_INTERNAL_TOKEN")
+    key_pepper = _required("REDIS_KEY_PEPPER").encode("utf-8")
+    genb_client = httpx.Client(
+        base_url=genb_base_url,
+        timeout=httpx.Timeout(
+            connect=_bounded_float(
+                "GENB_CONNECT_TIMEOUT_SECONDS", 1.0, minimum=0.1, maximum=10.0
+            ),
+            read=_bounded_float(
+                "GENB_READ_TIMEOUT_SECONDS", 2.0, minimum=0.1, maximum=30.0
+            ),
+            write=2.0,
+            pool=1.0,
+        ),
+    )
+    redis_client = _redis_client()
+    app = create_app(
+        identity_verifier=CompositeIdentityVerifier(
+            service_credentials=GenBServiceCredentialIntrospector(
+                client=genb_client,
+                introspection_url="/api/v1/internal/service-credentials:introspect",
+                internal_token=internal_token,
+            ),
+            actor_tokens=GenBJwksActorTokenVerifier(
+                client=genb_client,
+                jwks_url="/api/.well-known/jwks.json",
+                issuer="genb",
+                audience="control-system",
+            ),
+        ),
+        session_store=RedisSessionStore(
+            redis_client,
+            key_pepper=key_pepper,
+        ),
+        ttl_seconds=_bounded_int(
+            "SHORT_TERM_DEFAULT_TTL_SECONDS", 86400, minimum=60, maximum=2592000
+        ),
+        max_turns=_bounded_int(
+            "SHORT_TERM_MAX_TURNS", 50, minimum=1, maximum=500
+        ),
+    )
+    app.add_event_handler("shutdown", redis_client.aclose)
+    app.add_event_handler("shutdown", genb_client.close)
     return app
 
 
@@ -121,3 +178,31 @@ def _bounded_int(
             f"Environment variable is outside the allowed range: {name}"
         )
     return value
+
+
+def _bounded_float(
+    name: str,
+    default: float,
+    *,
+    minimum: float,
+    maximum: float,
+) -> float:
+    try:
+        value = float(os.getenv(name, str(default)))
+    except ValueError as error:
+        raise RuntimeError(f"Environment variable must be numeric: {name}") from error
+    if value < minimum or value > maximum:
+        raise RuntimeError(
+            f"Environment variable is outside the allowed range: {name}"
+        )
+    return value
+
+
+def _redis_client() -> Redis:
+    return Redis(
+        host=os.getenv("REDIS_HOST", "127.0.0.1"),
+        port=int(os.getenv("REDIS_PORT", "6379")),
+        password=os.getenv("REDIS_PASSWORD") or None,
+        db=int(os.getenv("REDIS_DB", "0")),
+        decode_responses=True,
+    )

@@ -25,6 +25,8 @@ def _actor_token(private_key: rsa.RSAPrivateKey, **overrides: object) -> str:
     claims: dict[str, object] = {
         "iss": "genb",
         "aud": "control-system",
+        "sub": "user-a",
+        "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=5)).timestamp()),
         "nbf": int((now - timedelta(seconds=5)).timestamp()),
         "tenantId": "tenant-a",
@@ -53,7 +55,7 @@ def test_valid_service_credential_and_signed_actor_token_create_identity() -> No
                 "service-token-a": ServiceCredential(
                     credential_id="credential-a",
                     agent_id="agent-a",
-                    scopes=frozenset({"short-term:read"}),
+                    scopes=frozenset({"component:short-term-memory:read"}),
                 )
             }
         ),
@@ -97,7 +99,7 @@ def test_service_credential_and_actor_token_agent_mismatch_is_denied() -> None:
                     "service-token-a": ServiceCredential(
                         credential_id="credential-a",
                         agent_id="agent-a",
-                        scopes=frozenset({"short-term:read"}),
+                        scopes=frozenset({"component:short-term-memory:read"}),
                     )
                 }
             ),
@@ -142,7 +144,7 @@ def test_expired_actor_token_is_unauthenticated() -> None:
                     "service-token-a": ServiceCredential(
                         credential_id="credential-a",
                         agent_id="agent-a",
-                        scopes=frozenset({"short-term:read"}),
+                        scopes=frozenset({"component:short-term-memory:read"}),
                     )
                 }
             ),
@@ -169,3 +171,20 @@ def test_expired_actor_token_is_unauthenticated() -> None:
 
     assert response.status_code == 401
     assert response.json()["code"] == "CONTROL_CALLER_UNAUTHENTICATED"
+
+
+def test_actor_token_subject_must_match_user_identity() -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public_key_pem = private_key.public_key().public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    verifier = RsaActorTokenVerifier(
+        public_key_pem=public_key_pem,
+        issuer="genb",
+        audience="control-system",
+    )
+
+    identity = verifier.verify(_actor_token(private_key, sub="another-user"))
+
+    assert identity is None

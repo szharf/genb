@@ -1,6 +1,6 @@
 # GenB Control System Service
 
-Control System 执行面服务。Iteration 9 实现 Short-term Memory 的第一条真实纵向切片，不存在额外的 Memory Runtime Service 层，也不依赖旧 `bank-agent-runtime`/SDK。
+Control System 执行面服务。Iteration 9 实现 Short-term Memory 的第一条真实纵向切片；Iteration 10 接入GenB服务凭证内省和Actor Token JWKS。不存在额外的 Memory Runtime Service 层，也不依赖旧 `bank-agent-runtime`/SDK。
 
 ## 已实现
 
@@ -8,16 +8,18 @@ Control System 执行面服务。Iteration 9 实现 Short-term Memory 的第一�
 - `POST /api/v1/control-system/short-term-memory/context:prepare`
 - `DELETE /api/v1/control-system/short-term-memory/sessions/{sessionId}`
 - 服务凭证 + RS256 Actor Token 双凭证验证。
+- GenB HTTP内省Adapter与按`kid`选择公钥的JWKS Adapter；依赖异常fail-closed。
 - tenant/user/agent/session 四维隔离。
 - 幂等重放、内容冲突、最近消息预算、密码/Token持久化前脱敏。
 - In-memory Adapter 与 Redis Adapter；Redis使用Lua原子提交、TTL和HMAC键。
 - `/health/live`、`/health/ready`、`/version` 和版本化OpenAPI。
 
-## 当前边界
+## 身份模式
 
-- 当前启动工厂只允许 `APP_ENV=local|test`，并使用本地凭证文件Adapter。
-- `production` 会直接拒绝启动；必须先完成GenB服务凭证内省Adapter、非对称签名/JWKS轮换和安全评审。
-- 本轮不包含Long-term Memory、摘要、模型调用、测试智能体或管理端测试台。
+- `CONTROL_SYSTEM_IDENTITY_ADAPTER=local`：只允许`APP_ENV=local|test`，使用本地凭证文件和RSA公钥。
+- `CONTROL_SYSTEM_IDENTITY_ADAPTER=genb`：通过`GENB_BASE_URL`调用GenB内省和JWKS Interface；生产环境强制HTTPS。
+- 两种模式都强制服务凭证与Actor Token的agent一致，并使用`component:short-term-memory:<action>` scope。
+- 当前不缓存内省结果或JWKS，GenB不可用时请求立即fail-closed。密钥轮换缓存、Long-term Memory、测试智能体和管理端测试台仍属后续范围。
 
 ## 测试
 
@@ -48,7 +50,11 @@ $env:CONTROL_SYSTEM_TEST_REDIS_PASSWORD = '<local test password>'
     "token": "<local-service-token>",
     "credentialId": "credential-test-a",
     "agentId": "memory-test-a",
-    "scopes": ["short-term:read", "short-term:write", "short-term:delete"]
+    "scopes": [
+      "component:short-term-memory:read",
+      "component:short-term-memory:write",
+      "component:short-term-memory:delete"
+    ]
   }
 ]
 ```
@@ -59,6 +65,17 @@ $env:CONTROL_SYSTEM_TEST_REDIS_PASSWORD = '<local test password>'
 $env:PYTHONPATH = 'src'
 & $python -m uvicorn control_system.main:create_application --factory --host 127.0.0.1 --port 8701
 ```
+
+连接本地GenB时无需本地凭证JSON或公钥文件，改用：
+
+```powershell
+$env:APP_ENV = 'local'
+$env:CONTROL_SYSTEM_IDENTITY_ADAPTER = 'genb'
+$env:GENB_BASE_URL = 'http://127.0.0.1:8581'
+$env:CONTROL_SYSTEM_INTERNAL_TOKEN = '<same value configured in GenB>'
+```
+
+GenB需要由环境提供`GENB_TENANT_ID`、`COMPONENT_ACTOR_KEY_ID`、`COMPONENT_ACTOR_PRIVATE_KEY_PATH`和`CONTROL_SYSTEM_INTERNAL_TOKEN`。私钥使用PKCS#8 PEM且不得小于2048 bit；JWKS仅发布相应公钥。不要把这些值或私钥提交到Git。
 
 ## OpenAPI
 

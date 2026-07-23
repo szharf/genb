@@ -391,7 +391,31 @@ GenB Iteration 5当前签发的Component Session仍是派生对称密钥JWT，�
 
 Iteration 9不包含Long-term Memory、摘要、真实Runtime Inference、测试智能体和管理端测试台。
 
-## 18. 提交策略
+## 18. 当前迭代（Iteration 10）
+
+### 目标
+
+完成GenB与Control System之间的生产方向身份契约：RS256 Actor Token、JWKS和受保护服务凭证内省，并通过真实Adapter解除测试智能体联调前的身份门禁。
+
+### 范围与门禁
+
+- 兼容现有Component Session交换响应，Actor Token升级为带`kid`的RS256 JWT。
+- claims包含受信`tenantId/userId/agentId/sessionId/components`以及固定`iss/aud`和标准时效字段。
+- GenB发布仅含公钥的JWKS，Control System固定算法并按`kid`选键。
+- 内省Interface使用独立内部凭证，不复用用户JWT或agent服务凭证作为调用方身份。
+- Control System通过HTTP/JWKS Adapter接入，GenB不可用、未知键、无效凭证均fail-closed。
+- scope统一为`component:<component-code>:<action>`；本轮不兼容两套scope命名。
+- tenant一期为GenB服务端受信配置；多租户目录映射仍是后续门禁。
+- 不部署、不修改远程数据库、不创建表或物理外键。
+
+### 完成标准
+
+- [ ] 独立使用JWKS可验证现有组件会话返回的Actor Token。
+- [ ] 内省有效/无效/过期/吊销矩阵和内部调用认证通过。
+- [ ] Control System真实Adapter身份链及fail-closed测试通过。
+- [ ] GenB、Control System全量回归、安全扫描、报告和精确提交完成。
+
+## 19. 提交策略
 
 - 当前根工作区存在大量历史未跟踪文件和子仓库改动，只精确暂存本计划、当前相关文档和新服务文件。
 - 不使用`git add .`，不提交日志、缓存、虚拟环境、构建产物或无关子仓库状态。

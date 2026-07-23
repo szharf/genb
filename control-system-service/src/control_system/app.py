@@ -119,7 +119,9 @@ def create_app(
         idempotency_key: str = Header(
             alias="Idempotency-Key", min_length=16, max_length=128
         ),
-        identity: InvocationIdentity = Depends(require_identity("short-term:write")),
+        identity: InvocationIdentity = Depends(
+            require_identity("component:short-term-memory:write")
+        ),
     ) -> dict[str, object]:
         result = await memory.commit_turn(
             identity,
@@ -146,7 +148,9 @@ def create_app(
     )
     async def prepare_context(
         request: PrepareContextRequest,
-        identity: InvocationIdentity = Depends(require_identity("short-term:read")),
+        identity: InvocationIdentity = Depends(
+            require_identity("component:short-term-memory:read")
+        ),
     ) -> dict[str, object]:
         messages, trimmed_count, estimated_token_count = await memory.prepare_context(
             identity,
@@ -178,7 +182,9 @@ def create_app(
     )
     async def clear_session(
         session_id: str = Path(alias="sessionId", min_length=1, max_length=128),
-        identity: InvocationIdentity = Depends(require_identity("short-term:delete")),
+        identity: InvocationIdentity = Depends(
+            require_identity("component:short-term-memory:delete")
+        ),
     ) -> dict[str, object]:
         if identity.session_id != session_id:
             raise AuthorizationProblem(
