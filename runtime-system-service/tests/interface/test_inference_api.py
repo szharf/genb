@@ -195,3 +195,29 @@ def test_invalid_structured_provider_output_returns_problem_details() -> None:
     assert response.status_code == 422
     assert response.json()["code"] == "MODEL_STRUCTURED_OUTPUT_INVALID"
     assert response.json()["requestId"] == "req-invalid-json"
+
+
+def test_local_fake_provider_supports_explicit_session_summary() -> None:
+    app = create_app(
+        identity_verifier=StaticTokenIdentityVerifier(
+            tokens={"test-service-token": {"component:inference-engine:infer"}}
+        )
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/runtime-system/inference",
+            headers={
+                "Authorization": "Bearer test-service-token",
+                "X-Request-Id": "req-summary-local",
+            },
+            json={
+                "capability": "SESSION_SUMMARY",
+                "modelAlias": "session-summary-default",
+                "messages": [{"role": "user", "content": "visible conversation"}],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["content"].startswith("Local-test summary")
+    assert response.json()["data"]["provider"] == "FAKE"

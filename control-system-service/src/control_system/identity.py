@@ -22,6 +22,11 @@ class InvocationIdentity:
     allowed_components: frozenset[str]
     scopes: frozenset[str]
     request_id: str
+    component_config_versions: tuple[tuple[str, int], ...] = ()
+    trace_parent: str | None = None
+
+    def config_version_for(self, component_code: str) -> int | None:
+        return dict(self.component_config_versions).get(component_code)
 
 
 class IdentityVerifier(Protocol):
@@ -62,6 +67,7 @@ class ActorIdentity:
     agent_id: str
     session_id: str
     allowed_components: frozenset[str]
+    component_config_versions: tuple[tuple[str, int], ...] = ()
 
 
 class ActorTokenVerifier(Protocol):
@@ -133,6 +139,7 @@ def _verify_rsa_actor_token(
             agent_id=claims["agentId"],
             session_id=claims["sessionId"],
             allowed_components=frozenset(claims["components"]),
+            component_config_versions=_parse_component_config_versions(claims),
         )
     except (
         InvalidSignature,
@@ -221,6 +228,7 @@ class CompositeIdentityVerifier:
             allowed_components=actor.allowed_components,
             scopes=credential.scopes,
             request_id=request_id,
+            component_config_versions=actor.component_config_versions,
         )
 
 
@@ -255,6 +263,33 @@ class StaticIdentityVerifier:
 
 def _decode_segment(value: str) -> str:
     return _decode_bytes(value).decode("utf-8")
+
+
+def _parse_component_config_versions(
+    claims: dict[str, object],
+) -> tuple[tuple[str, int], ...]:
+    snapshot = claims.get("bindingSnapshot")
+    if snapshot is None:
+        return ()
+    if not isinstance(snapshot, list):
+        raise ValueError("bindingSnapshot must be an array")
+    versions: dict[str, int] = {}
+    for item in snapshot:
+        if not isinstance(item, dict):
+            raise ValueError("bindingSnapshot entry must be an object")
+        component_code = item.get("componentCode")
+        config_id = item.get("configVersionId")
+        if not (
+            isinstance(component_code, str)
+            and component_code
+            and isinstance(config_id, int)
+            and not isinstance(config_id, bool)
+            and config_id > 0
+            and component_code not in versions
+        ):
+            raise ValueError("bindingSnapshot entry is invalid")
+        versions[component_code] = config_id
+    return tuple(sorted(versions.items()))
 
 
 def _decode_bytes(value: str) -> bytes:

@@ -18,6 +18,13 @@
       "model": "replace-with-approved-chat-model"
     },
     {
+      "routeId": "session-summary-primary",
+      "modelAlias": "session-summary-default",
+      "capabilities": ["CHAT"],
+      "providerId": "direct-primary",
+      "model": "replace-with-approved-chat-model"
+    },
+    {
       "routeId": "embedding-primary-v1",
       "modelAlias": "embedding-default-v1",
       "capabilities": ["EMBEDDING"],

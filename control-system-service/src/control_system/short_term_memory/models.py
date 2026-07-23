@@ -42,3 +42,25 @@ class StoreCommitResult:
     turn_id: str
     duplicate: bool
     message_count: int
+
+
+@dataclass(frozen=True)
+class ConversationSummary:
+    summary: str
+    through_turn_id: str
+    model: str
+    updated_at: datetime
+
+
+@dataclass(frozen=True)
+class PreparedContext:
+    messages: list[StoredMessage]
+    trimmed_message_count: int
+    estimated_token_count: int
+    summary: ConversationSummary | None = None
+    summary_status: str = "DISABLED"
+
+    def __iter__(self):
+        yield self.messages
+        yield self.trimmed_message_count
+        yield self.estimated_token_count

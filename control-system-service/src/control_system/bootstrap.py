@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from redis.asyncio import Redis
 
 from .app import create_app
+from .component_config import GenBShortTermMemoryConfigProvider
 from .identity import (
     CompositeIdentityVerifier,
     RsaActorTokenVerifier,
@@ -19,6 +20,7 @@ from .genb_identity import (
     GenBServiceCredentialIntrospector,
 )
 from .short_term_memory.redis_store import RedisSessionStore
+from .summary import RuntimeInferenceSummaryGenerator, UnavailableSummaryGenerator
 
 
 def create_local_app() -> FastAPI:
@@ -85,6 +87,7 @@ def create_genb_connected_app() -> FastAPI:
         ),
     )
     redis_client = _redis_client()
+    summary_generator, runtime_client = _runtime_summary_generator(environment)
     app = create_app(
         identity_verifier=CompositeIdentityVerifier(
             service_credentials=GenBServiceCredentialIntrospector(
@@ -103,15 +106,20 @@ def create_genb_connected_app() -> FastAPI:
             redis_client,
             key_pepper=key_pepper,
         ),
-        ttl_seconds=_bounded_int(
-            "SHORT_TERM_DEFAULT_TTL_SECONDS", 86400, minimum=60, maximum=2592000
+        config_provider=GenBShortTermMemoryConfigProvider(
+            client=genb_client,
+            config_url_template="/api/v1/internal/component-configs/{config_id}",
+            internal_token=internal_token,
+            cache_ttl_seconds=_bounded_float(
+                "GENB_CONFIG_CACHE_TTL_SECONDS", 30.0, minimum=1.0, maximum=3600.0
+            ),
         ),
-        max_turns=_bounded_int(
-            "SHORT_TERM_MAX_TURNS", 50, minimum=1, maximum=500
-        ),
+        summary_generator=summary_generator,
     )
     app.add_event_handler("shutdown", redis_client.aclose)
     app.add_event_handler("shutdown", genb_client.close)
+    if runtime_client is not None:
+        app.add_event_handler("shutdown", runtime_client.aclose)
     return app
 
 
@@ -205,4 +213,41 @@ def _redis_client() -> Redis:
         password=os.getenv("REDIS_PASSWORD") or None,
         db=int(os.getenv("REDIS_DB", "0")),
         decode_responses=True,
+    )
+
+
+def _runtime_summary_generator(
+    environment: str,
+) -> tuple[RuntimeInferenceSummaryGenerator | UnavailableSummaryGenerator, httpx.AsyncClient | None]:
+    base_url = os.getenv("RUNTIME_INFERENCE_BASE_URL", "").rstrip("/")
+    service_token = os.getenv("CONTROL_SYSTEM_RUNTIME_TOKEN", "")
+    if bool(base_url) != bool(service_token):
+        raise RuntimeError(
+            "RUNTIME_INFERENCE_BASE_URL and CONTROL_SYSTEM_RUNTIME_TOKEN must be configured together"
+        )
+    if not base_url:
+        if environment == "production":
+            raise RuntimeError("Runtime Inference summary adapter is required in production")
+        return UnavailableSummaryGenerator(), None
+    if environment == "production" and urlparse(base_url).scheme != "https":
+        raise RuntimeError("RUNTIME_INFERENCE_BASE_URL must use HTTPS in production")
+    client = httpx.AsyncClient(
+        base_url=base_url,
+        timeout=httpx.Timeout(
+            connect=_bounded_float(
+                "RUNTIME_CONNECT_TIMEOUT_SECONDS", 3.0, minimum=0.1, maximum=10.0
+            ),
+            read=_bounded_float(
+                "RUNTIME_READ_TIMEOUT_SECONDS", 30.0, minimum=1.0, maximum=60.0
+            ),
+            write=5.0,
+            pool=2.0,
+        ),
+    )
+    return (
+        RuntimeInferenceSummaryGenerator(
+            client=client,
+            service_token=service_token,
+        ),
+        client,
     )

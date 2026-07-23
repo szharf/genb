@@ -6,7 +6,7 @@ from datetime import datetime
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from .models import ConversationTurn, StoreCommitResult, StoredMessage
+from .models import ConversationSummary, ConversationTurn, StoreCommitResult, StoredMessage
 from .store import IdempotencyConflictError, ScopeKey, StoreUnavailableError
 
 _COMMIT_SCRIPT = """
@@ -38,6 +38,24 @@ redis.call(
   tonumber(ARGV[6])
 )
 return {0, cjson.encode(result)}
+"""
+
+_WRITE_SUMMARY_SCRIPT = """
+local current = redis.call('HGET', KEYS[1], 'throughTurnId')
+if ARGV[1] == '' then
+  if current then return 0 end
+else
+  if current ~= ARGV[1] then return 0 end
+end
+redis.call(
+  'HSET', KEYS[1],
+  'summary', ARGV[2],
+  'throughTurnId', ARGV[3],
+  'model', ARGV[4],
+  'updatedAt', ARGV[5]
+)
+redis.call('EXPIRE', KEYS[1], tonumber(ARGV[6]))
+return 1
 """
 
 
@@ -123,6 +141,47 @@ class RedisSessionStore:
                 )
             return messages
         except (RedisError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            raise StoreUnavailableError from error
+
+    async def read_summary(self, scope: ScopeKey) -> ConversationSummary | None:
+        _, _, summary_key = self._session_keys(scope)
+        try:
+            payload = await self._client.hgetall(summary_key)
+            if not payload:
+                return None
+            return ConversationSummary(
+                summary=payload["summary"],
+                through_turn_id=payload["throughTurnId"],
+                model=payload["model"],
+                updated_at=datetime.fromisoformat(payload["updatedAt"]),
+            )
+        except (RedisError, KeyError, TypeError, ValueError) as error:
+            raise StoreUnavailableError from error
+
+    async def write_summary(
+        self,
+        scope: ScopeKey,
+        summary: ConversationSummary,
+        *,
+        expected_through_turn_id: str | None,
+        ttl_seconds: int,
+    ) -> bool:
+        _, _, summary_key = self._session_keys(scope)
+        try:
+            return bool(
+                await self._client.eval(
+                    _WRITE_SUMMARY_SCRIPT,
+                    1,
+                    summary_key,
+                    expected_through_turn_id or "",
+                    summary.summary,
+                    summary.through_turn_id,
+                    summary.model,
+                    summary.updated_at.isoformat(),
+                    ttl_seconds,
+                )
+            )
+        except RedisError as error:
             raise StoreUnavailableError from error
 
     async def clear(self, scope: ScopeKey) -> bool:

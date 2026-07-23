@@ -83,11 +83,12 @@ class FakeModelProvider:
             for message in reversed(request.messages)
             if message.role == "user"
         )
-        content = (
-            self._structured_content or json.dumps({"memories": []})
-            if request.response_format is not None
-            else user_content
-        )
+        if request.response_format is not None:
+            content = self._structured_content or json.dumps({"memories": []})
+        elif request.capability == "SESSION_SUMMARY":
+            content = "Local-test summary of the visible completed conversation."
+        else:
+            content = user_content
         token_estimate = len(user_content)
         return ProviderInferenceResult(
             content=content,

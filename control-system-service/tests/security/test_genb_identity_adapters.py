@@ -40,6 +40,9 @@ def _actor_token(private_key: rsa.RSAPrivateKey, *, key_id: str) -> str:
         "agentId": "agent-a",
         "sessionId": "session-a",
         "components": ["SHORT_TERM_MEMORY"],
+        "bindingSnapshot": [
+            {"componentCode": "SHORT_TERM_MEMORY", "configVersionId": 41}
+        ],
     }
     encoded_header = _encode(json.dumps(header).encode())
     encoded_claims = _encode(json.dumps(claims).encode())
@@ -90,30 +93,33 @@ def test_genb_adapters_construct_identity_through_public_memory_interface() -> N
         base_url="http://genb.local",
         transport=httpx.MockTransport(handler),
     )
+    actor_verifier = GenBJwksActorTokenVerifier(
+        client=genb_client,
+        jwks_url="/api/.well-known/jwks.json",
+        issuer="genb",
+        audience="control-system",
+    )
     verifier = CompositeIdentityVerifier(
         service_credentials=GenBServiceCredentialIntrospector(
             client=genb_client,
             introspection_url="/api/v1/internal/service-credentials:introspect",
             internal_token="internal-token-a",
         ),
-        actor_tokens=GenBJwksActorTokenVerifier(
-            client=genb_client,
-            jwks_url="/api/.well-known/jwks.json",
-            issuer="genb",
-            audience="control-system",
-        ),
+        actor_tokens=actor_verifier,
     )
     app = create_app(
         identity_verifier=verifier,
         session_store=InMemorySessionStore(),
     )
 
+    actor_token = _actor_token(private_key, key_id=key_id)
+    verified_actor = actor_verifier.verify(actor_token)
     with TestClient(app) as client:
         response = client.post(
             "/api/v1/control-system/short-term-memory/context:prepare",
             headers={
                 "Authorization": "Bearer service-token-a",
-                "X-GenB-Actor-Token": _actor_token(private_key, key_id=key_id),
+                "X-GenB-Actor-Token": actor_token,
             },
             json={"query": "hello", "maxContextTokens": 100},
         )
@@ -121,6 +127,8 @@ def test_genb_adapters_construct_identity_through_public_memory_interface() -> N
     genb_client.close()
     assert response.status_code == 200
     assert response.json()["data"]["messages"] == []
+    assert verified_actor is not None
+    assert verified_actor.component_config_versions == (("SHORT_TERM_MEMORY", 41),)
 
 
 def test_genb_adapters_fail_closed_for_unknown_key_and_dependency_failure() -> None:

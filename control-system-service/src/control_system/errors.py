@@ -58,3 +58,14 @@ class DependencyProblem(ControlSystemProblem):
             detail="Short-term Memory is temporarily unavailable.",
             request_id=request_id,
         )
+
+
+class RuntimeConfigProblem(ControlSystemProblem):
+    def __init__(self, request_id: str) -> None:
+        super().__init__(
+            status=503,
+            code="SHORT_TERM_CONFIG_UNAVAILABLE",
+            title="Short-term Memory runtime config is unavailable",
+            detail="A valid published Short-term Memory config is required.",
+            request_id=request_id,
+        )
