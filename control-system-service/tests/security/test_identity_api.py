@@ -34,6 +34,10 @@ def _actor_token(private_key: rsa.RSAPrivateKey, **overrides: object) -> str:
         "agentId": "agent-a",
         "sessionId": "session-a",
         "components": ["SHORT_TERM_MEMORY"],
+        "scopes": [
+            "component:short-term-memory:read",
+            "component:short-term-memory:write",
+        ],
     }
     claims.update(overrides)
     encoded_header = _encode(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
@@ -55,7 +59,7 @@ def test_valid_service_credential_and_signed_actor_token_create_identity() -> No
                 "service-token-a": ServiceCredential(
                     credential_id="credential-a",
                     agent_id="agent-a",
-                    scopes=frozenset({"component:short-term-memory:read"}),
+                    scopes=frozenset(),
                 )
             }
         ),

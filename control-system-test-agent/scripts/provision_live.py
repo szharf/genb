@@ -13,11 +13,6 @@ COMPONENT = "SHORT_TERM_MEMORY"
 IMPLEMENTATION = "control-short-term-memory-iteration11"
 PROFILE = "iteration11-default"
 AGENTS = ("memory-test-a", "memory-test-b", "memory-test-unbound")
-SCOPES = (
-    "component:short-term-memory:read",
-    "component:short-term-memory:write",
-    "component:short-term-memory:delete",
-)
 
 
 def main() -> None:
@@ -57,12 +52,9 @@ def main() -> None:
             for agent_id in AGENTS[:2]
         }
         credentials = {
-            "agentA": _issue_credential(client, args.genb_base_url, headers, AGENTS[0], SCOPES),
-            "agentB": _issue_credential(client, args.genb_base_url, headers, AGENTS[1], SCOPES),
-            "unbound": _issue_credential(client, args.genb_base_url, headers, AGENTS[2], SCOPES),
-            "agentAReadOnly": _issue_credential(
-                client, args.genb_base_url, headers, AGENTS[0], (SCOPES[0],)
-            ),
+            "agentA": _issue_credential(client, args.genb_base_url, headers, AGENTS[0]),
+            "agentB": _issue_credential(client, args.genb_base_url, headers, AGENTS[1]),
+            "unbound": _issue_credential(client, args.genb_base_url, headers, AGENTS[2]),
             "bindingIds": {key: value["id"] for key, value in bindings.items()},
         }
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -220,7 +212,6 @@ def _issue_credential(
     base: str,
     headers: dict[str, str],
     agent_id: str,
-    scopes: tuple[str, ...],
 ) -> str:
     data = _data(
         client.post(
@@ -229,7 +220,6 @@ def _issue_credential(
             json={
                 "agentId": agent_id,
                 "name": f"Iteration 11 {agent_id} acceptance",
-                "scopes": list(scopes),
             },
         ),
         f"issue credential {agent_id}",

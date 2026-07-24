@@ -12,13 +12,6 @@ COMPONENT = "LONG_TERM_MEMORY"
 IMPLEMENTATION = "control-long-term-memory-iteration13"
 PROFILE = "iteration13-default"
 AGENTS = ("memory-test-a", "memory-test-b", "memory-test-unbound")
-SCOPES = (
-    "component:long-term-memory:read",
-    "component:long-term-memory:write",
-    "component:long-term-memory:delete",
-)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--genb-base-url", default="http://127.0.0.1:18581/api")
@@ -115,7 +108,6 @@ def _ensure_binding(client, base, headers, agent_id, implementation_code, config
 def _credential(client, base, headers, agent_id):
     return _data(client.post(f"{base}/v1/service-credentials", headers=headers, json={
         "agentId": agent_id, "name": f"Iteration 13 {agent_id} acceptance",
-        "scopes": list(SCOPES),
     }), f"credential {agent_id}")["credentialSecret"]
 
 

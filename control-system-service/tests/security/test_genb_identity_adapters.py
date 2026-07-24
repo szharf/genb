@@ -40,6 +40,7 @@ def _actor_token(private_key: rsa.RSAPrivateKey, *, key_id: str) -> str:
         "agentId": "agent-a",
         "sessionId": "session-a",
         "components": ["SHORT_TERM_MEMORY"],
+        "scopes": ["component:short-term-memory:read"],
         "bindingSnapshot": [
             {"componentCode": "SHORT_TERM_MEMORY", "configVersionId": 41}
         ],
@@ -82,8 +83,8 @@ def test_genb_adapters_construct_identity_through_public_memory_interface() -> N
                     "active": True,
                     "credentialId": "credential-a",
                     "agentId": "agent-a",
-                    "scopes": ["component:short-term-memory:read"],
-                    "expiresAt": "2026-12-31T00:00:00",
+                    "scopes": [],
+                    "expiresAt": None,
                     "credentialVersion": 0,
                 },
             )

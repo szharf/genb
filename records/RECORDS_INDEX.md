@@ -67,6 +67,8 @@
 | Control System短期记忆Iteration 9 | `records/reports/20260723-REPORT-control-system-short-term-memory-iteration-9.md` | 新建Control System执行面，完成双凭证、短期记忆Interface、四维隔离、Redis Adapter和16项测试；真实GenB身份联调仍受门禁限制。 |
 | GenB与Control System身份契约Iteration 10 | `records/reports/20260723-REPORT-genb-control-system-identity-iteration-10.md` | 完成RS256 Actor Token、JWKS、受保护凭证内省、Control System HTTP Adapter和双项目129项测试，为测试智能体联调解除身份门禁。 |
 | 核心组件真实测试智能体Iteration 11 | `records/reports/20260723-REPORT-control-system-test-agent-iteration-11.md` | 新建单代码多实例测试智能体，贯通真实GenB、Control System、开发PostgreSQL和Redis，完成A/B召回隔离及失败矩阵验收。 |
+| 核心记忆测试台与测试智能体操作手册 | `records/reports/20260724-REPORT-core-memory-testing-guide.md` | 核对当前页面、接口和测试智能体运行形态，交付逐点击手册、教学页和快速参考，并明确STOPPED与CLI启动边界。 |
+| 智能体级长期服务凭证与页面闭环 | `records/reports/20260724-REPORT-agent-long-lived-service-credential.md` | 将临时组件scope凭证改为每agent单活长期机器身份，绑定动态授权，并完成页面生成/轮换/复制/自动填入和远程库迁移。 |
 | Short-term Memory Iteration 12 | `records/reports/20260724-REPORT-short-term-memory-iteration-12.md` | 完成管理测试台、已发布动态配置、Runtime摘要、Redis摘要、指标/trace和真实五段链路验收，并修复绑定重配置状态机。 |
 | 核心组件本地403与菜单层级修复 | `records/reports/20260723-REPORT-core-component-load-menu-fix.md` | 修复9100同源入口Token键不一致导致的403，并完成“智能体中心→智能体列表/核心组件”菜单层级调整。 |
 | Genesis 英文统一登录短入口 | `records/reports/20260723-REPORT-genesis-english-short-entry.md` | 通过 Nginx 查询参数为英文客户端提供 `/portal/login?lang=en` 短入口，并保留既有资源、API 和兼容入口。 |

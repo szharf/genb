@@ -98,22 +98,6 @@ async def main_async() -> None:
             )
             evidence["checks"]["unboundAgentDenied"] = "PASS"
 
-            read_only_agent = TestAgent(
-                agent_id="memory-test-a",
-                service_credential=credentials["agentAReadOnly"],
-                genb=genb,
-                control=control,
-                answerer=DeterministicAnswerer(),
-            )
-            read_only_result = await read_only_agent.chat(
-                user_token=user_token,
-                session_id="iteration11-read-only",
-                message="只读调用不能提交",
-            )
-            assert not read_only_result.committed
-            assert read_only_result.warnings == ("SHORT_TERM_COMMIT_UNAVAILABLE",)
-            evidence["checks"]["insufficientScopeDenied"] = "PASS"
-
             await _verify_disabled_binding_fails_closed(
                 http=http,
                 genb=genb,
@@ -236,7 +220,6 @@ def _require_distinct(credentials: dict[str, Any]) -> None:
         credentials["agentA"],
         credentials["agentB"],
         credentials["unbound"],
-        credentials["agentAReadOnly"],
     ]
     if len(set(values)) != len(values):
         raise RuntimeError("Each logical fixture must use a distinct service credential")

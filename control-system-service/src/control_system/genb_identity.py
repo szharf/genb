@@ -51,10 +51,9 @@ class GenBServiceCredentialIntrospector(ServiceCredentialIntrospector):
                 and credential_id
                 and isinstance(agent_id, str)
                 and agent_id
-                and isinstance(scopes, list)
-                and all(isinstance(scope, str) and scope for scope in scopes)
-                and isinstance(expires_at, str)
-                and expires_at
+                and (scopes is None or isinstance(scopes, list))
+                and all(isinstance(scope, str) and scope for scope in (scopes or []))
+                and (expires_at is None or isinstance(expires_at, str) and expires_at)
                 and isinstance(credential_version, int)
                 and credential_version >= 0
             ):
@@ -62,7 +61,7 @@ class GenBServiceCredentialIntrospector(ServiceCredentialIntrospector):
             return ServiceCredential(
                 credential_id=credential_id,
                 agent_id=agent_id,
-                scopes=frozenset(scopes),
+                scopes=frozenset(scopes or []),
             )
         except (httpx.HTTPError, TypeError, ValueError, json.JSONDecodeError):
             return None

@@ -67,6 +67,7 @@ class ActorIdentity:
     agent_id: str
     session_id: str
     allowed_components: frozenset[str]
+    scopes: frozenset[str]
     component_config_versions: tuple[tuple[str, int], ...] = ()
 
 
@@ -139,6 +140,7 @@ def _verify_rsa_actor_token(
             agent_id=claims["agentId"],
             session_id=claims["sessionId"],
             allowed_components=frozenset(claims["components"]),
+            scopes=frozenset(claims["scopes"]),
             component_config_versions=_parse_component_config_versions(claims),
         )
     except (
@@ -172,6 +174,7 @@ def _claims_are_valid(
         claims.get("sessionId"),
     ]
     components = claims.get("components")
+    scopes = claims.get("scopes")
     return bool(
         claims.get("iss") == issuer
         and audience_matches
@@ -188,6 +191,8 @@ def _claims_are_valid(
         and re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", str(claims["sessionId"]))
         and isinstance(components, list)
         and all(isinstance(value, str) and value for value in components)
+        and isinstance(scopes, list)
+        and all(isinstance(value, str) and value for value in scopes)
     )
 
 class CompositeIdentityVerifier:
@@ -217,7 +222,7 @@ class CompositeIdentityVerifier:
             raise AuthorizationProblem("Credential and Actor Token do not match", request_id)
         if required_component not in actor.allowed_components:
             raise AuthorizationProblem("Required component is not allowed", request_id)
-        if required_scope not in credential.scopes:
+        if required_scope not in actor.scopes:
             raise AuthorizationProblem("Required scope is missing", request_id)
         return InvocationIdentity(
             tenant_id=actor.tenant_id,
@@ -226,7 +231,7 @@ class CompositeIdentityVerifier:
             session_id=actor.session_id,
             service_credential_id=credential.credential_id,
             allowed_components=actor.allowed_components,
-            scopes=credential.scopes,
+            scopes=actor.scopes,
             request_id=request_id,
             component_config_versions=actor.component_config_versions,
         )

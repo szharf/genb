@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>第 1 课：分清测试台、测试智能体与真实服务</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+<main>
+  <nav>
+    <a href="../reference/core-memory-testing-cheatsheet.html">打开快速参考</a>
+    <a href="../../../operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md">打开完整手册</a>
+  </nav>
+  <h1>第 1 课：分清哪些要“启动”</h1>
+  <p class="lede">学完这一课，你能解释为什么 <code>memory-test-a</code> 显示 <code>STOPPED</code> 仍然可以测试，并能完成一次页面短期记忆闭环。</p>
+
+  <h2>先记住一张最小地图</h2>
+  <table>
+    <thead><tr><th>对象</th><th>运行形态</th><th>测试前要做什么</th></tr></thead>
+    <tbody>
+      <tr><td>GenB 后端、Control、Runtime、Redis、PostgreSQL</td><td>常驻服务</td><td>启动并检查健康状态</td></tr>
+      <tr><td>GenB 页面</td><td>浏览器中的操作入口</td><td>从 <code>http://localhost:9100/</code> 登录</td></tr>
+      <tr><td><code>memory-test-a/b</code></td><td>逻辑身份 + 同一份 CLI 代码</td><td>页面选择它，或用环境变量运行一次 CLI</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warning"><strong>STOPPED 不等于不能调用组件。</strong>当前 A/B 没有常驻端口、启动命令和健康检查；CLI 每次运行完会正常退出。只有以后把它开发成 HTTP 服务，才应该要求列表显示 RUNNING。</div>
+
+  <h2>练习一：完成一次新 Session 写入</h2>
+  <ol class="steps">
+    <li>打开 <code>http://localhost:9100/</code>，登录后进入管理端。</li>
+    <li>点击“智能体中心”→“核心组件”→“短期记忆/工作台”→“独立测试台”。</li>
+    <li>绑定智能体选 <code>memory-test-a</code>。这决定记忆属于哪个智能体。</li>
+    <li>Session ID 填一个从未用过的值，例如 <code>manual-st-a-你的日期-001</code>。新值用于证明调用前没有历史。</li>
+    <li>在“智能体服务凭证”区点击“生成服务凭证”；已有凭证但没有明文时点击“轮换服务凭证”。新凭证会自动填入测试框。</li>
+    <li>用户消息填“我偏好低风险、流动性高的理财产品。”，点击“运行真实测试”。</li>
+  </ol>
+  <p class="check"><strong>立即反馈：</strong>召回上下文应为 <code>0</code>，提交后消息应为 <code>2</code>。否则不要继续第二轮，先查 Session 是否真的新建、凭证是否属于 A、Control/Redis 是否健康。</p>
+
+  <h2>练习二：证明同 Session 可以召回</h2>
+  <ol class="steps">
+    <li>智能体和 Session ID 保持完全不变。</li>
+    <li>从上方一次展示区再次复制并粘贴A凭证，因为测试输入框在上次提交后已主动清空；长期凭证本身没有失效。</li>
+    <li>输入“请读取刚才的上下文。”并再次运行。</li>
+  </ol>
+  <p class="check"><strong>立即反馈：</strong>召回上下文应为 <code>2</code>，提交后应为 <code>4</code>。每轮保存一条用户消息和一条测试回答。</p>
+
+  <h2>练习三：证明 A/B 隔离</h2>
+  <ol class="steps">
+    <li>智能体改为 <code>memory-test-b</code>，但故意保留 A 刚才的 Session ID。</li>
+    <li>粘贴 B 的服务凭证，不能继续使用 A 的凭证。</li>
+    <li>输入“这个会话之前说过什么？”并运行。</li>
+  </ol>
+  <p class="check"><strong>立即反馈：</strong>召回上下文应回到 <code>0</code>。相同 Session 下仍为 0，才证明隔离键包含 <code>agentId</code>。</p>
+
+  <h2>你现在应该能回答</h2>
+  <ul>
+    <li>为什么测试智能体显示 STOPPED 仍能测试？</li>
+    <li>为什么第二轮必须保留 Session ID？</li>
+    <li>为什么测试 B 时必须换成 B 的凭证？</li>
+  </ul>
+  <div class="callout success">把三个答案发给 Codex，或把页面结果截图和错误原文发来，我可以按你的真实结果继续带你排查。正式执行长期记忆和 CLI 矩阵前，请阅读<a href="../../../operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md">完整操作手册</a>。</div>
+
+  <footer>主要来源：当前 GenB 独立测试台、GenB 测试运行器、Control System 接口和 control-system-test-agent 源码；版本日期 2026-07-24。</footer>
+</main>
+</body>
+</html>

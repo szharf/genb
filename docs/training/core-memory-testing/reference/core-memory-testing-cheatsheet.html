@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>核心记忆组件测试快速参考</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+<main>
+  <nav><a href="../lessons/0001-core-memory-testbench-and-agent.html">返回第 1 课</a><a href="../../../operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md">完整手册</a></nav>
+  <h1>核心记忆组件测试快速参考</h1>
+  <p class="lede">用于测试现场快速查步骤；首次操作请先看完整手册。</p>
+
+  <h2>必须常驻</h2>
+  <table><tbody>
+    <tr><th>GenB 后端</th><td>8581</td><th>Control</th><td>18701</td></tr>
+    <tr><th>Runtime</th><td>18704</td><th>Redis</th><td>6379</td></tr>
+    <tr><th>PostgreSQL</th><td>5432</td><th>页面入口</th><td>9100</td></tr>
+  </tbody></table>
+  <pre><code>Invoke-WebRequest 'http://127.0.0.1:8581/api/actuator/health' -UseBasicParsing
+Invoke-RestMethod 'http://127.0.0.1:18701/health/ready'
+Invoke-RestMethod 'http://127.0.0.1:18704/health/ready'</code></pre>
+
+  <h2>不需要常驻</h2>
+  <p><code>memory-test-a</code>、<code>memory-test-b</code>、<code>memory-test-unbound</code> 当前是逻辑身份和 CLI 测试夹具。<code>DRAFT / STOPPED</code> 是预期状态；执行 CLI 命令即运行一次。</p>
+
+  <h2>页面最小通过矩阵</h2>
+  <table>
+    <thead><tr><th>用例</th><th>操作差异</th><th>预期</th></tr></thead>
+    <tbody>
+      <tr><td>短期首次</td><td>A + 新 Session</td><td>召回 0，提交后 2</td></tr>
+      <tr><td>短期连续</td><td>A + 同 Session</td><td>召回 2，提交后 4</td></tr>
+      <tr><td>Session 隔离</td><td>A + 新 Session</td><td>召回 0</td></tr>
+      <tr><td>智能体隔离</td><td>B + A 的 Session + B 凭证</td><td>召回 0</td></tr>
+      <tr><td>错凭证</td><td>页面选 A + B 凭证</td><td>403/身份不匹配</td></tr>
+      <tr><td>长期写入</td><td>A + 稳定偏好</td><td>SUCCEEDED，写入 1</td></tr>
+      <tr><td>长期跨 Session</td><td>A + 新 Session + 同主题查询</td><td>仍能召回</td></tr>
+    </tbody>
+  </table>
+
+  <h2>四个输入</h2>
+  <table><tbody>
+    <tr><th>绑定智能体</th><td>记忆归属；只能选已启用绑定</td></tr>
+    <tr><th>Session ID</th><td>短期隔离边界；由测试者创建，首轮务必唯一</td></tr>
+    <tr><th>服务凭证</th><td>每个智能体一份长期机器身份；页面生成后只展示一次，测试框提交后清空但凭证仍有效</td></tr>
+    <tr><th>用户消息</th><td>测试内容；禁止真实密码、Token、验证码、API Key</td></tr>
+  </tbody></table>
+
+  <h2>当前能力边界</h2>
+  <div class="callout warning">本地 Runtime 使用 Fake 结构化结果，能证明接口、配置、提取、持久化和隔离链路，不能证明真实模型回答质量。长期记忆页面会先提取再搜索，严格 A/B、敏感拒绝和删除矩阵应运行 CLI acceptance。</div>
+
+  <h2>出错先看</h2>
+  <table><tbody>
+    <tr><th>403</th><td>登录 Token、用户权限、A/B 凭证归属、scope、绑定启用状态</td></tr>
+    <tr><th>无可选智能体</th><td>该组件没有已启用绑定</td></tr>
+    <tr><th>短期一直为 0</th><td>是否换了 Session、agentId 或 Redis DB</td></tr>
+    <tr><th>长期卡住</th><td>Control Worker、Runtime ready、PostgreSQL、任务状态</td></tr>
+  </tbody></table>
+  <footer>遇到不一致时保留时间、智能体、Session、HTTP 状态、错误原文和截图，再向 Codex 提问；不要记录服务凭证明文。</footer>
+</main>
+</body>
+</html>
