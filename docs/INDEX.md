@@ -58,6 +58,7 @@
 ## 需求
 
 - `requirements/README.md`：需求目录说明。
+- `requirements/CORE_COMPONENT_STRUCTURE_PLANNING_SHORT_TERM_CONFIRMATION.md`：五大系统/14组件总体结构、规划与推理引擎及短期记忆/工作台的功能边界和一期效果待确认清单。
 - `requirements/CLIENT_I18N_COPY_MAP.md`：Gen-B 客户端前端固定中文文案和英文对照表。
 - `requirements/BACKEND_DATABASE_I18N_PLAN.md`：Gen-B 英文版后端返回、数据库动态内容、messageKey 和翻译表改造计划。
 

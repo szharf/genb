@@ -40,6 +40,7 @@
 | Genesis 用户权限列表性能优化 | `records/reports/20260720-REPORT-genesis-access-users-performance-optimization.md` | 消除用户与平台权限组装的 N+1 查询，将远程库列表响应从约 15 秒降至约 1.1 秒。 |
 | 新增 shizhenhua、sunny 并提交权限优化 | `records/reports/20260720-REPORT-add-shizhenhua-sunny-and-commit-access-optimization.md` | 两名统一门户/GenO 管理员创建、映射、登录验收及性能优化提交记录。 |
 | 补齐三名统一用户与平台权限 | `records/reports/20260727-REPORT-add-three-genesis-platform-users.md` | 为黄令湖、徐浩健、胡正尧新增 GenB/Genesis 管理员，分配 GenC `ADMIN` 并绑定既有 GenO 用户，完成真实登录和门户验收。 |
+| 核心组件需求确认与门户动效优化 | `records/reports/20260727-REPORT-core-component-confirmation-and-portal-motion-performance.md` | 整理只聚焦结构和功能效果的评审清单，定位登录页全屏Canvas持续重绘卡顿并完成性能回归、双语构建和页面验收。 |
 | GenC、GenO 生产部署报告 | `records/reports/20260721-REPORT-genc-geno-production-deployment.md` | 两个平台最新统一登录代码部署、同域 Cookie 修正和完整 SSO 验收。 |
 | GenO 推送与仓库外交接 | `records/reports/20260721-REPORT-geno-push-and-external-handoff.md` | protected `dev` 推送限制、仓库外交接文档和提交边界检查。 |
 | Genesis 本地部署中心 | `records/reports/20260721-REPORT-local-deployment-center.md` | 无服务 PowerShell 桌面工具、三个项目脚本、DPAPI、安全门禁、Dry Run 和验证记录。 |

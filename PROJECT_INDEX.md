@@ -43,6 +43,7 @@
 | `docs/development/CLIENT_GENESIS_I18N_IMPLEMENTATION.md` | Gen-B 客户端与 Genesis 门户的中英文切换、共享状态和请求语言头说明。 |
 | `docs/security/PERMISSION_MATRIX.md` | 客户端、管理端和 API 权限矩阵。 |
 | `docs/requirements/CLIENT_I18N_COPY_MAP.md` | Gen-B 客户端前端固定中文文案和英文对照表。 |
+| `docs/requirements/CORE_COMPONENT_STRUCTURE_PLANNING_SHORT_TERM_CONFIRMATION.md` | 五大系统/14组件总体结构，以及规划与推理引擎、短期记忆/工作台的功能边界和一期效果待确认清单。 |
 | `docs/requirements/BACKEND_DATABASE_I18N_PLAN.md` | Gen-B 英文版后端返回、数据库动态内容、messageKey 和翻译表改造计划。 |
 | `docs/integration/GENESIS_PORTAL_LOGIN_INTEGRATION.md` | Genesis 统一门户登录、用户同步、平台授权和 Gen-C/Gen-O 接入说明。 |
 | `docs/integration/GENESIS_UNIFIED_LOGIN_CHAIN_EXPLAINED.md` | 面向开发和非开发人员的三平台统一登录流程、差异、接口、配置和排查说明。 |
