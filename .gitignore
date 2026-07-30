@@ -10,6 +10,7 @@
 /.npm-cache/
 /.agents/
 /.trae/
+/.local-secrets/
 
 # Generated screenshots / temporary exports
 /*.png

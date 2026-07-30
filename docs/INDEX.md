@@ -51,6 +51,7 @@
 - `operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md`：长短期记忆独立测试台与测试智能体详细操作、启动、凭证、隔离、验收和排障手册。
 - `operation/SHORT_TERM_MEMORY_CONTRACT_REGISTRATION_AND_STANDALONE_TEST_GUIDE.md`：短期记忆接口契约上传/粘贴/手工注册、发布、实现版本约束及独立服务Swagger逐点击测试；明确本轮暂不连通。
 - `operation/PLANNING_REASONING_SERVICE_GUIDE.md`：规划与推理引擎的启动、Swagger需求澄清、简单/复杂Skill生成、MCP声明、校验和版本修订逐步操作。
+- `operation/PLANNING_REASONING_GENB_AND_TEST_AGENT_GUIDE.md`：规划服务接入GenB后的管理员直测、智能体绑定测试、客户端专用测试页面和四种操作逐点击手册。
 
 ## 样例
 

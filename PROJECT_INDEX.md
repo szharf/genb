@@ -37,6 +37,7 @@
 | `docs/development/CONTROL_SYSTEM_MEMORY_IMPLEMENTATION_GUIDE.md` | Control System长短记忆一期专项：代码架构、身份、数据、Runtime Inference Adapter、测试、部署和可复用系统模板。 |
 | `docs/operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md` | 长短期记忆独立测试台与测试智能体逐点击操作手册，说明服务启动、服务凭证、A/B 隔离、完整矩阵、证据与排障。 |
 | `docs/operation/SHORT_TERM_MEMORY_CONTRACT_REGISTRATION_AND_STANDALONE_TEST_GUIDE.md` | 新版接口契约模板的短期记忆上传/粘贴/手工注册、发布和独立Swagger逐点击测试，明确暂不连通。 |
+| `docs/operation/PLANNING_REASONING_GENB_AND_TEST_AGENT_GUIDE.md` | 规划与推理引擎的GenB双模式测试台、专用测试智能体、四种操作、启动和排障逐点击手册。 |
 | `docs/training/core-memory-testing/lessons/0001-core-memory-testbench-and-agent.html` | 面向非开发人员的浏览器教学页：分清常驻服务与按命令运行的测试智能体。 |
 | `docs/development/DATABASE_SCHEMA.md` | 后端 Entity、核心表和数据关系文档。 |
 | `docs/development/DATABASE_FIELDS.md` | 数据库核心字段明细。 |

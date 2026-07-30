@@ -10,7 +10,7 @@ from control_system_test_agent.models import (
     ContextMessage,
     PreparedContext,
 )
-from control_system_test_agent.orchestrator import DeterministicAnswerer, StandaloneMemoryTestAgent, TestAgent
+from control_system_test_agent.orchestrator import DeterministicAnswerer, PlanningTestAgent, StandaloneMemoryTestAgent, TestAgent
 
 
 @dataclass
@@ -156,3 +156,43 @@ async def test_standalone_agent_uses_genb_binding_endpoint_and_commits_same_task
     assert memory.prepares[0]["task_id"] == "task-a"
     assert memory.commits[0]["task_id"] == "task-a"
     assert memory.commits[0]["session_id"] == "session-a"
+
+
+class FakePlanning:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    async def invoke(self, **kwargs: object) -> dict[str, object]:
+        self.calls.append(kwargs)
+        return {"status": "READY", "questions": []}
+
+
+@pytest.mark.asyncio
+async def test_planning_agent_resolves_genb_binding_before_calling_service() -> None:
+    class PlanningGenB(FakeGenB):
+        async def issue_component_session(self, **kwargs: object) -> ActorSession:
+            assert kwargs["requested_components"] == ("PLANNING_REASONING",)
+            return ActorSession(
+                component_session_id="component-plan", actor_token="actor-plan",
+                expires_at="2026-07-30T12:00:00Z",
+                components=(ComponentEndpoint(
+                    component_code="PLANNING_REASONING", implementation_code="planning-v1",
+                    base_url="http://planning.local", interface_version="1.0.0",
+                    config_version_id=9, scopes=("component:planning-reasoning:invoke",),
+                ),),
+            )
+
+    planning = FakePlanning()
+    agent = PlanningTestAgent(
+        agent_id="standalone-planning-test-agent", service_credential="credential-plan",
+        genb=PlanningGenB("standalone-planning-test-agent"), planning=planning,
+    )
+
+    result = await agent.invoke(
+        user_token="user-token", session_id="session-plan", operation="ANALYZE",
+        payload={"goal": "生成授信检查Skill"},
+    )
+
+    assert result["status"] == "READY"
+    assert planning.calls[0]["base_url"] == "http://planning.local"
+    assert planning.calls[0]["actor_token"] == "actor-plan"

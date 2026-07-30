@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 from uuid import uuid4
 
-from .clients import ControlSystemClient, GenBClient, StandaloneShortTermMemoryClient
+from .clients import ControlSystemClient, GenBClient, PlanningReasoningClient, StandaloneShortTermMemoryClient
 from .errors import RemoteCallError
 from .models import ChatResult, ContextMessage, ExtractionStatus, LongTermMemoryItem
 
@@ -167,6 +167,7 @@ class StandaloneMemoryTestAgent:
             warnings=(),
         )
 
+
     async def store_long_term(
         self, *, user_token: str, session_id: str, message: str
     ) -> ExtractionStatus:
@@ -216,5 +217,59 @@ class StandaloneMemoryTestAgent:
             service_credential=self._service_credential,
             actor_token=component_session.actor_token,
             query=query,
+            request_id=f"req_{uuid4().hex}",
+        )
+
+
+class PlanningTestAgent:
+    __test__ = False
+
+    def __init__(
+        self,
+        *,
+        agent_id: str,
+        service_credential: str,
+        genb: GenBClient,
+        planning: PlanningReasoningClient,
+    ) -> None:
+        self._agent_id = agent_id
+        self._service_credential = service_credential
+        self._genb = genb
+        self._planning = planning
+
+    async def invoke(
+        self,
+        *,
+        user_token: str,
+        session_id: str,
+        operation: str,
+        payload: dict[str, object],
+    ) -> dict[str, object]:
+        component_session = await self._genb.issue_component_session(
+            user_token=user_token,
+            service_credential=self._service_credential,
+            agent_id=self._agent_id,
+            session_id=session_id,
+            requested_components=("PLANNING_REASONING",),
+        )
+        endpoint = next(
+            (
+                item for item in component_session.components
+                if item.component_code == "PLANNING_REASONING"
+            ),
+            None,
+        )
+        if endpoint is None:
+            raise RemoteCallError(
+                operation="resolve planning reasoning binding",
+                status_code=502,
+                request_id=None,
+            )
+        return await self._planning.invoke(
+            base_url=endpoint.base_url,
+            service_credential=self._service_credential,
+            actor_token=component_session.actor_token,
+            operation=operation,
+            payload=payload,
             request_id=f"req_{uuid4().hex}",
         )

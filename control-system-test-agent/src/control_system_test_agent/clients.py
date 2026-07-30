@@ -362,6 +362,51 @@ class StandaloneShortTermMemoryClient:
         )
 
 
+class PlanningReasoningClient:
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+    async def invoke(
+        self,
+        *,
+        base_url: str,
+        service_credential: str,
+        actor_token: str,
+        operation: str,
+        payload: Mapping[str, Any],
+        request_id: str,
+    ) -> dict[str, Any]:
+        normalized = operation.strip().upper()
+        paths = {
+            "ANALYZE": "/api/v1/planning-reasoning/requirements:analyze",
+            "GENERATE": "/api/v1/planning-reasoning/skills:generate",
+            "VALIDATE": "/api/v1/planning-reasoning/skills:validate",
+        }
+        body = dict(payload)
+        if normalized == "REVISE":
+            skill_id = body.pop("skillId", "")
+            if not isinstance(skill_id, str) or not skill_id:
+                raise ValueError("REVISE requires skillId")
+            path = f"/api/v1/planning-reasoning/skills/{quote(skill_id, safe='')}:revise"
+        else:
+            path = paths.get(normalized)
+            if path is None:
+                raise ValueError("Unsupported planning operation")
+        headers = _identity_headers(service_credential, actor_token, request_id)
+        if normalized in {"GENERATE", "REVISE"}:
+            headers["Idempotency-Key"] = f"idem_{request_id}"
+        response = await _post(
+            self._client,
+            f"{base_url.rstrip('/')}{path}",
+            operation=f"planning {normalized.lower()}",
+            request_id=request_id,
+            headers=headers,
+            json=body,
+        )
+        data = _required_object(_object(response, f"planning {normalized.lower()}", request_id), "data")
+        return dict(data)
+
+
 async def _post(
     client: httpx.AsyncClient,
     url: str,

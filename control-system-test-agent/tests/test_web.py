@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from fastapi.testclient import TestClient
 
 from control_system_test_agent.models import ChatResult
-from control_system_test_agent.web import create_app, get_agent
+from control_system_test_agent.web import create_app, get_agent, get_planning_agent
 
 
 @dataclass
@@ -55,3 +55,54 @@ def test_chat_api_rejects_missing_user_token(monkeypatch) -> None:
         )
 
     assert response.status_code == 401
+
+
+@dataclass
+class FakePlanningAgent:
+    calls: list[dict[str, object]]
+
+    async def invoke(self, **kwargs: object) -> dict[str, object]:
+        self.calls.append(kwargs)
+        return {"status": "READY", "questions": []}
+
+
+def test_planning_api_uses_user_token_and_returns_service_result(monkeypatch) -> None:
+    monkeypatch.setenv("AGENT_ID", "standalone-planning-test-agent")
+    monkeypatch.setenv("GENB_BASE_URL", "http://genb.local/api")
+    monkeypatch.setenv("SERVICE_CREDENTIAL", "server-only-secret")
+    fake = FakePlanningAgent([])
+    application = create_app()
+    application.dependency_overrides[get_planning_agent] = lambda: fake
+
+    with TestClient(application) as client:
+        response = client.post(
+            "/api/planning",
+            headers={"Authorization": "Bearer user-token-a"},
+            json={
+                "sessionId": "session-plan", "operation": "ANALYZE",
+                "payload": {"goal": "生成授信检查Skill"},
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["status"] == "READY"
+    assert fake.calls[0]["user_token"] == "user-token-a"
+    assert "server-only-secret" not in response.text
+
+
+def test_planning_api_maps_invalid_operation_payload_to_bad_request(monkeypatch) -> None:
+    class InvalidPlanningAgent:
+        async def invoke(self, **_kwargs: object) -> dict[str, object]:
+            raise ValueError("REVISE requires skillId")
+
+    monkeypatch.setenv("AGENT_ID", "standalone-planning-test-agent")
+    monkeypatch.setenv("GENB_BASE_URL", "http://genb.local/api")
+    monkeypatch.setenv("SERVICE_CREDENTIAL", "server-only-secret")
+    application = create_app()
+    application.dependency_overrides[get_planning_agent] = lambda: InvalidPlanningAgent()
+    with TestClient(application) as client:
+        response = client.post(
+            "/api/planning", headers={"Authorization": "Bearer user-token-a"},
+            json={"sessionId": "session-plan", "operation": "REVISE", "payload": {}},
+        )
+    assert response.status_code == 400

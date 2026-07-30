@@ -3,6 +3,9 @@
 - `records/plans/20260730-PLAN-planning-reasoning-service-phase1.md`：规划与推理引擎一期的需求澄清、Skill生成/校验/修订、身份、PostgreSQL和验收计划。
 - `records/reports/20260730-REPORT-planning-reasoning-service-phase1.md`：规划服务代码、两张无外键表、真实HTTP和远程PostgreSQL验收结果。
 - `docs/operation/PLANNING_REASONING_SERVICE_GUIDE.md`：面向首次使用者的启动、Swagger澄清、简单/复杂Skill、校验和修订逐步操作手册。
+- `records/plans/20260730-PLAN-planning-reasoning-genb-agent-integration.md`：规划服务接入GenB、双模式测试台和专用测试智能体的任务计划。
+- `records/reports/20260730-REPORT-planning-reasoning-genb-agent-integration.md`：契约、实现、配置、绑定、长期凭证、完整Skill生命周期和浏览器验收结果。
+- `docs/operation/PLANNING_REASONING_GENB_AND_TEST_AGENT_GUIDE.md`：从零开始使用管理端和客户端测试规划组件的逐点击操作手册。
 - `records/plans/20260730-PLAN-agent-binding-auth-credential-and-memory-chat.md`：绑定名称、统一退出、未登录路由守卫、测试凭证持久化和短期记忆聊天智能体实施计划。
 - `records/reports/20260730-REPORT-agent-binding-auth-credential-and-memory-chat.md`：五项功能实现、双层鉴权、真实两轮短期记忆聊天及浏览器验收报告。
 - `records/plans/20260730-PLAN-short-term-memory-runtime-connection-and-dual-testbench.md`：独立短期记忆服务与GenB真实联通、管理员服务直测和智能体绑定测试双路径的详细任务计划。

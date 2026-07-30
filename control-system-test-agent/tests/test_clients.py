@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from control_system_test_agent.clients import ControlSystemClient, GenBClient, StandaloneShortTermMemoryClient
+from control_system_test_agent.clients import ControlSystemClient, GenBClient, PlanningReasoningClient, StandaloneShortTermMemoryClient
 from control_system_test_agent.errors import RemoteCallError
 
 
@@ -238,3 +238,24 @@ async def test_standalone_memory_client_uses_bound_base_url_and_task_scope() -> 
     assert committed.message_count == 4
     assert json.loads(requests[0].content)["taskId"] == "task-a"
     assert requests[1].headers["Idempotency-Key"] == "idem-standalone-0001"
+
+
+@pytest.mark.asyncio
+async def test_planning_client_calls_bound_endpoint_with_both_credentials() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"data": {"status": "READY", "questions": []}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        result = await PlanningReasoningClient(http).invoke(
+            base_url="http://planning.local", service_credential="secret-a",
+            actor_token="actor-a", operation="ANALYZE",
+            payload={"goal": "生成授信检查Skill"}, request_id="req-plan-a",
+        )
+
+    assert result["status"] == "READY"
+    assert requests[0].url.path.endswith("/requirements:analyze")
+    assert requests[0].headers["Authorization"] == "Bearer secret-a"
+    assert requests[0].headers["X-GenB-Actor-Token"] == "actor-a"
