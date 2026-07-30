@@ -10,7 +10,7 @@ from control_system_test_agent.models import (
     ContextMessage,
     PreparedContext,
 )
-from control_system_test_agent.orchestrator import DeterministicAnswerer, TestAgent
+from control_system_test_agent.orchestrator import DeterministicAnswerer, StandaloneMemoryTestAgent, TestAgent
 
 
 @dataclass
@@ -117,3 +117,42 @@ async def test_prepare_failure_degrades_but_commit_failure_is_reported_without_l
     assert result.context_message_count == 0
     assert result.committed is False
     assert result.warnings == ("SHORT_TERM_PREPARE_UNAVAILABLE", "SHORT_TERM_COMMIT_UNAVAILABLE")
+
+
+class FakeStandaloneMemory:
+    def __init__(self) -> None:
+        self.prepares: list[dict[str, object]] = []
+        self.commits: list[dict[str, object]] = []
+
+    async def prepare_context(self, **kwargs: object) -> PreparedContext:
+        self.prepares.append(kwargs)
+        return PreparedContext(
+            messages=(ContextMessage(role="user", content="first turn", turn_id="turn-old"),),
+            request_id="req-prepare",
+        )
+
+    async def commit_turn(self, **kwargs: object) -> CommitResult:
+        self.commits.append(kwargs)
+        return CommitResult(turn_id=str(kwargs["turn_id"]), duplicate=False, message_count=4)
+
+
+@pytest.mark.asyncio
+async def test_standalone_agent_uses_genb_binding_endpoint_and_commits_same_task() -> None:
+    memory = FakeStandaloneMemory()
+    agent = StandaloneMemoryTestAgent(
+        agent_id="standalone-memory-test-agent",
+        service_credential="credential-a",
+        genb=FakeGenB("standalone-memory-test-agent"),
+        memory=memory,
+        answerer=DeterministicAnswerer(),
+    )
+
+    result = await agent.chat(
+        user_token="user-token", task_id="task-a", session_id="session-a", message="second turn"
+    )
+
+    assert result.context_message_count == 1 and result.committed is True
+    assert memory.prepares[0]["base_url"] == "http://control.local"
+    assert memory.prepares[0]["task_id"] == "task-a"
+    assert memory.commits[0]["task_id"] == "task-a"
+    assert memory.commits[0]["session_id"] == "session-a"

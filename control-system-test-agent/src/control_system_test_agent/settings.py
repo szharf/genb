@@ -42,3 +42,32 @@ class Settings:
             user_token=values["USER_TOKEN"],
             http_timeout_seconds=timeout,
         )
+
+
+@dataclass(frozen=True)
+class WebSettings:
+    agent_id: str
+    genb_base_url: str
+    service_credential: str
+    http_timeout_seconds: float = 5.0
+
+    @classmethod
+    def from_mapping(cls, values: Mapping[str, str]) -> "WebSettings":
+        required = ("AGENT_ID", "GENB_BASE_URL", "SERVICE_CREDENTIAL")
+        missing = [key for key in required if not values.get(key)]
+        if missing:
+            raise ValueError(f"Missing required settings: {', '.join(missing)}")
+        parsed = urlparse(values["GENB_BASE_URL"])
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("GENB_BASE_URL must be an HTTP(S) URL")
+        if values["SERVICE_CREDENTIAL"].startswith("${"):
+            raise ValueError("SERVICE_CREDENTIAL contains an unresolved placeholder")
+        timeout = float(values.get("HTTP_TIMEOUT_SECONDS", "5"))
+        if timeout <= 0 or timeout > 30:
+            raise ValueError("HTTP_TIMEOUT_SECONDS must be greater than 0 and at most 30")
+        return cls(
+            agent_id=values["AGENT_ID"],
+            genb_base_url=values["GENB_BASE_URL"],
+            service_credential=values["SERVICE_CREDENTIAL"],
+            http_timeout_seconds=timeout,
+        )

@@ -279,6 +279,89 @@ class ControlSystemClient:
         return deleted
 
 
+class StandaloneShortTermMemoryClient:
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
+    async def prepare_context(
+        self,
+        *,
+        base_url: str,
+        service_credential: str,
+        actor_token: str,
+        task_id: str,
+        session_id: str,
+        query: str,
+        request_id: str,
+    ) -> PreparedContext:
+        response = await _post(
+            self._client,
+            f"{base_url.rstrip('/')}/api/v1/short-term-memory/context:prepare",
+            operation="prepare standalone short-term context",
+            request_id=request_id,
+            headers=_identity_headers(service_credential, actor_token, request_id),
+            json={"taskId": task_id, "sessionId": session_id, "query": query, "maxMessages": 20},
+        )
+        data = _required_object(_object(response, "prepare standalone short-term context", request_id), "data")
+        raw_messages = data.get("messages")
+        if not isinstance(raw_messages, list):
+            raise _invalid_payload("prepare standalone short-term context", request_id)
+        return PreparedContext(
+            messages=tuple(
+                ContextMessage(
+                    role=_required_string(_as_mapping(item), "role"),
+                    content=_required_string(_as_mapping(item), "content"),
+                    turn_id=_optional_string(_as_mapping(item), "turnId"),
+                )
+                for item in raw_messages
+            ),
+            request_id=request_id,
+        )
+
+    async def commit_turn(
+        self,
+        *,
+        base_url: str,
+        service_credential: str,
+        actor_token: str,
+        task_id: str,
+        session_id: str,
+        turn_id: str,
+        user_message: str,
+        assistant_message: str,
+        occurred_at: str,
+        request_id: str,
+        idempotency_key: str,
+    ) -> CommitResult:
+        headers = _identity_headers(service_credential, actor_token, request_id)
+        headers["Idempotency-Key"] = idempotency_key
+        response = await _post(
+            self._client,
+            f"{base_url.rstrip('/')}/api/v1/short-term-memory/turns:commit",
+            operation="commit standalone short-term turn",
+            request_id=request_id,
+            headers=headers,
+            json={
+                "taskId": task_id,
+                "sessionId": session_id,
+                "turnId": turn_id,
+                "userMessage": user_message,
+                "assistantMessage": assistant_message,
+                "occurredAt": occurred_at,
+            },
+        )
+        data = _required_object(_object(response, "commit standalone short-term turn", request_id), "data")
+        replayed = data.get("replayed")
+        message_count = data.get("messageCount")
+        if not isinstance(replayed, bool) or not isinstance(message_count, int):
+            raise _invalid_payload("commit standalone short-term turn", request_id)
+        return CommitResult(
+            turn_id=turn_id,
+            duplicate=replayed,
+            message_count=message_count,
+        )
+
+
 async def _post(
     client: httpx.AsyncClient,
     url: str,

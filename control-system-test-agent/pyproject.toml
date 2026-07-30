@@ -3,7 +3,7 @@ name = "genb-control-system-test-agent"
 version = "0.1.0"
 description = "Thin multi-instance test agent for GenB Control System components"
 requires-python = ">=3.11"
-dependencies = ["httpx>=0.27,<1"]
+dependencies = ["fastapi>=0.115,<1", "httpx>=0.27,<1", "uvicorn>=0.30,<1"]
 
 [project.optional-dependencies]
 test = ["pytest>=8.3,<9", "pytest-asyncio>=0.24,<1"]

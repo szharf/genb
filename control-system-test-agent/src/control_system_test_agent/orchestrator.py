@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 from uuid import uuid4
 
-from .clients import ControlSystemClient, GenBClient
+from .clients import ControlSystemClient, GenBClient, StandaloneShortTermMemoryClient
 from .errors import RemoteCallError
 from .models import ChatResult, ContextMessage, ExtractionStatus, LongTermMemoryItem
 
@@ -89,6 +89,82 @@ class TestAgent:
             context_message_count=len(context),
             committed=committed,
             warnings=tuple(warnings),
+        )
+
+
+class StandaloneMemoryTestAgent:
+    __test__ = False
+
+    def __init__(
+        self,
+        *,
+        agent_id: str,
+        service_credential: str,
+        genb: GenBClient,
+        memory: StandaloneShortTermMemoryClient,
+        answerer: Answerer,
+    ) -> None:
+        self._agent_id = agent_id
+        self._service_credential = service_credential
+        self._genb = genb
+        self._memory = memory
+        self._answerer = answerer
+
+    async def chat(
+        self, *, user_token: str, task_id: str, session_id: str, message: str
+    ) -> ChatResult:
+        component_session = await self._genb.issue_component_session(
+            user_token=user_token,
+            service_credential=self._service_credential,
+            agent_id=self._agent_id,
+            session_id=session_id,
+            requested_components=("SHORT_TERM_MEMORY",),
+        )
+        endpoint = next(
+            (
+                item
+                for item in component_session.components
+                if item.component_code == "SHORT_TERM_MEMORY"
+            ),
+            None,
+        )
+        if endpoint is None:
+            raise RemoteCallError(
+                operation="resolve short-term memory binding",
+                status_code=502,
+                request_id=None,
+            )
+
+        request_id = f"req_{uuid4().hex}"
+        prepared = await self._memory.prepare_context(
+            base_url=endpoint.base_url,
+            service_credential=self._service_credential,
+            actor_token=component_session.actor_token,
+            task_id=task_id,
+            session_id=session_id,
+            query=message,
+            request_id=request_id,
+        )
+        answer = await self._answerer.answer(query=message, context=prepared.messages)
+        unique = uuid4().hex
+        await self._memory.commit_turn(
+            base_url=endpoint.base_url,
+            service_credential=self._service_credential,
+            actor_token=component_session.actor_token,
+            task_id=task_id,
+            session_id=session_id,
+            turn_id=f"turn_{unique}",
+            user_message=message,
+            assistant_message=answer,
+            occurred_at=datetime.now(UTC).isoformat(),
+            request_id=f"req_{uuid4().hex}",
+            idempotency_key=f"idem_{unique}",
+        )
+        return ChatResult(
+            answer=answer,
+            context_message_count=len(prepared.messages),
+            committed=True,
+            warnings=(),
         )
 
     async def store_long_term(

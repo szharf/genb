@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from control_system_test_agent.clients import ControlSystemClient, GenBClient
+from control_system_test_agent.clients import ControlSystemClient, GenBClient, StandaloneShortTermMemoryClient
 from control_system_test_agent.errors import RemoteCallError
 
 
@@ -205,3 +205,36 @@ async def test_long_term_client_supports_extract_status_search_and_soft_delete()
     assert items[0].memory_type == "USER_PREFERENCE" and deleted is True
     assert requests[0].headers["Idempotency-Key"] == "idem-long-term-a"
     assert all(request.headers["X-GenB-Actor-Token"] == "actor-a" for request in requests)
+
+
+@pytest.mark.asyncio
+async def test_standalone_memory_client_uses_bound_base_url_and_task_scope() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path.endswith("context:prepare"):
+            return httpx.Response(200, json={"data": {"messages": [
+                {"turnId": "turn-old", "sessionId": "session-a", "role": "user", "content": "first"}
+            ]}})
+        return httpx.Response(200, json={"data": {
+            "taskId": "task-a", "messageCount": 4, "replayed": False
+        }})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        client = StandaloneShortTermMemoryClient(http)
+        prepared = await client.prepare_context(
+            base_url="http://memory.local", service_credential="secret-a", actor_token="actor-a",
+            task_id="task-a", session_id="session-a", query="second", request_id="req-a",
+        )
+        committed = await client.commit_turn(
+            base_url="http://memory.local", service_credential="secret-a", actor_token="actor-a",
+            task_id="task-a", session_id="session-a", turn_id="turn-new",
+            user_message="second", assistant_message="answer", occurred_at="2026-07-30T00:00:00Z",
+            request_id="req-b", idempotency_key="idem-standalone-0001",
+        )
+
+    assert prepared.messages[0].content == "first"
+    assert committed.message_count == 4
+    assert json.loads(requests[0].content)["taskId"] == "task-a"
+    assert requests[1].headers["Idempotency-Key"] == "idem-standalone-0001"

@@ -1,5 +1,7 @@
 # 历史记录反向索引
 
+- `records/plans/20260730-PLAN-agent-binding-auth-credential-and-memory-chat.md`：绑定名称、统一退出、未登录路由守卫、测试凭证持久化和短期记忆聊天智能体实施计划。
+- `records/reports/20260730-REPORT-agent-binding-auth-credential-and-memory-chat.md`：五项功能实现、双层鉴权、真实两轮短期记忆聊天及浏览器验收报告。
 - `records/plans/20260730-PLAN-short-term-memory-runtime-connection-and-dual-testbench.md`：独立短期记忆服务与GenB真实联通、管理员服务直测和智能体绑定测试双路径的详细任务计划。
 - `records/reports/20260730-REPORT-short-term-memory-runtime-connection-and-dual-testbench.md`：短期记忆服务真实注册、双模式测试台、可信身份、远程开发数据和端到端验收报告。
 - `docs/operation/SHORT_TERM_MEMORY_RUNTIME_CONNECTION_AND_DUAL_TESTBENCH_GUIDE.md`：面向零基础管理员的注册结果检查、服务直测、凭证获取、智能体测试和负向测试逐点击手册。
