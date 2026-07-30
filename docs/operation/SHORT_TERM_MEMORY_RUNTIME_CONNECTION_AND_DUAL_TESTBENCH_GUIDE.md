@@ -34,8 +34,8 @@
 ## 3. 启动前检查
 
 1. 打开PowerShell。
-2. 执行`Get-NetTCPConnection -State Listen -LocalPort 6379,8581,9100,18705`。
-3. 应看到：Redis `6379`、GenB后端`8581`、最新GenB管理端`9100`、短期记忆服务`18705`。本地不再启动`9000`备用入口。
+2. 执行`Get-NetTCPConnection -State Listen -LocalPort 6379,8581,9000,9100,18705`。
+3. 应看到：Redis `6379`、GenB后端`8581`、内部管理端上游`9000`、唯一用户入口`9100`、短期记忆服务`18705`。`9000`不是旧版本，也不作为用户访问地址；`9100`通过路径代理同时承载统一门户和最新管理端。
 4. 浏览器打开`http://127.0.0.1:18705/health/ready`。
 5. 应看到`status=UP`和`store=REDIS`。
 6. 如果`18705`没有启动，必须使用`SHORT_TERM_MEMORY_AUTH_MODE=genb`和Redis模式启动；不能用`development_headers`做绑定验收。
