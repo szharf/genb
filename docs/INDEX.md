@@ -49,6 +49,11 @@
 
 - `operation/README.md`：运维目录说明。
 - `operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md`：长短期记忆独立测试台与测试智能体详细操作、启动、凭证、隔离、验收和排障手册。
+- `operation/SHORT_TERM_MEMORY_CONTRACT_REGISTRATION_AND_STANDALONE_TEST_GUIDE.md`：短期记忆接口契约上传/粘贴/手工注册、发布、实现版本约束及独立服务Swagger逐点击测试；明确本轮暂不连通。
+
+## 样例
+
+- `samples/short-term-memory-contract-v1.yaml`：包含短期记忆一个逻辑组件服务5个HTTP接口的OpenAPI 3.1注册样例。
 
 ## 培训
 

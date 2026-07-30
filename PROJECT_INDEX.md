@@ -1,6 +1,6 @@
 # Gen-B 项目索引
 
-更新时间：2026-07-23
+更新时间：2026-07-30
 
 这是 `D:\code\opencode\genb` 的项目级索引。目标是让人和 AI 在大项目中快速定位上下文，减少误改、重复搜索和 token 消耗。
 
@@ -36,6 +36,7 @@
 | `docs/development/RUNTIME_SYSTEM_INFERENCE_ENGINE_IMPLEMENTATION_GUIDE.md` | Runtime System最小Inference Engine一期专项：统一模型Interface、Direct/Alaya/Fake Adapter、身份、凭证、路由、结构化输出、流式、Embedding、测试和部署。 |
 | `docs/development/CONTROL_SYSTEM_MEMORY_IMPLEMENTATION_GUIDE.md` | Control System长短记忆一期专项：代码架构、身份、数据、Runtime Inference Adapter、测试、部署和可复用系统模板。 |
 | `docs/operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md` | 长短期记忆独立测试台与测试智能体逐点击操作手册，说明服务启动、服务凭证、A/B 隔离、完整矩阵、证据与排障。 |
+| `docs/operation/SHORT_TERM_MEMORY_CONTRACT_REGISTRATION_AND_STANDALONE_TEST_GUIDE.md` | 新版接口契约模板的短期记忆上传/粘贴/手工注册、发布和独立Swagger逐点击测试，明确暂不连通。 |
 | `docs/training/core-memory-testing/lessons/0001-core-memory-testbench-and-agent.html` | 面向非开发人员的浏览器教学页：分清常驻服务与按命令运行的测试智能体。 |
 | `docs/development/DATABASE_SCHEMA.md` | 后端 Entity、核心表和数据关系文档。 |
 | `docs/development/DATABASE_FIELDS.md` | 数据库核心字段明细。 |
@@ -64,6 +65,7 @@
 | 智能体 Runtime/SDK | `bank-agent-project/bank-agent-runtime` | 智能体运行时底座和 SDK。 |
 | Runtime System服务 | `runtime-system-service` | 核心组件平台新执行面；Iteration 1完成Fake纵向切片，Iteration 2完成离线可验证的Direct Provider与配置路由主链路，不依赖旧Runtime SDK。 |
 | Control System服务 | `control-system-service` | Control System执行面；当前完成Short-term Memory、Redis、GenB内省/JWKS身份接入和真实A/B隔离联调。 |
+| 独立短期记忆参考服务 | `short-term-memory-service` | 不依赖旧SDK的短期记忆逻辑服务样例；提供5个HTTP操作、四维隔离、TTL、幂等、脱敏及内存/Redis Adapter，本轮未接入GenB运行链。 |
 | Control System测试智能体 | `control-system-test-agent` | 单代码多逻辑实例的薄HTTP调用方；用于组件会话、长短记忆、隔离与失败矩阵自动验收，不依赖旧Runtime SDK。 |
 | Gen-B 后端 | `gen-b/gen-b-backend` | 登录、用户、角色、权限、智能体、授权申请、审批、状态、部署管理，以及核心组件目录、配置、绑定、治理、服务凭证和短时组件会话控制面（Iteration 5）。 |
 | Gen-B 客户端 | `gen-b/gen-b-client` | 业务用户门户：我的智能体、智能体市场、我的申请、个人中心。 |

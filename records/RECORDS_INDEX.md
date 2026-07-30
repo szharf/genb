@@ -1,6 +1,6 @@
 # 历史记录反向索引
 
-更新时间：2026-07-27
+更新时间：2026-07-30
 
 本文按主题索引 `records/` 下的历史记录，用于快速追溯背景、已做过的验证和历史结论。历史记录可信度低于当前代码，仅作为线索。
 
@@ -28,6 +28,8 @@
 | 个人分支、GenC 权限与备份盘点计划 | `records/plans/20260721-PLAN-personal-branch-genc-permissions-backup-inventory.md` | 三仓库建立 `szharf-dev`，保存当前成果，启动权限开发并只读整理 Codex 备份。 |
 | GenB 中英文双版本 Nginx 路由处理计划 | `records/plans/20260722-PLAN-genb-bilingual-nginx-routing.md` | 固定中文 `/genb` 与英文 `/genb-en`，记录英文构建 base、Nginx 路由、验证门禁和回滚顺序。 |
 | 核心组件平台详细实施计划 | `records/plans/20260723-PLAN-core-component-platform-implementation.md` | 从公共契约、Inference Engine、GenB控制面、长短记忆到五系统14组件总体验收的里程碑、工作包和当前Iteration 1/2。 |
+| 独立短期记忆与组件契约模板计划 | `records/plans/20260730-PLAN-standalone-short-term-memory-and-component-contract-template.md` | 新建独立短期记忆服务，增加GenB OpenAPI 3.1多接口契约管理、管理端页面、独立验收和零基础注册手册；本轮明确暂不互联。 |
+| 独立短期记忆与接口契约模板交付 | `records/reports/20260730-REPORT-standalone-short-term-memory-and-interface-contract-template.md` | 完成短期记忆独立服务、Redis Adapter、GenB三种契约录入/发布/查看、实现版本约束、双语页面与真实浏览器验收，并记录暂不互联及远程表创建事实。 |
 | Long-term Memory Iteration 13 | `records/reports/20260724-REPORT-long-term-memory-iteration-13.md` | 长期记忆Store/Worker/Interface、GenB测试台、远程PostgreSQL和四段真实链路验收。 |
 | 核心组件一期生产硬化检查点 | `records/reports/20260724-REPORT-phase1-production-hardening-checkpoint.md` | 运行保护、生产身份、SLO/告警、秘密攻击集、安全依赖、SBOM、真实PG/Redis与外部门禁状态。 |
 | 核心组件管理端Iteration 6计划 | `records/plans/20260723-PLAN-core-component-console-iteration-6.md` | 交付固定五系统/14组件目录页，并落实“设计可表达外键、实际DDL无物理外键”的数据库门禁。 |
@@ -74,6 +76,7 @@
 | Short-term Memory Iteration 12 | `records/reports/20260724-REPORT-short-term-memory-iteration-12.md` | 完成管理测试台、已发布动态配置、Runtime摘要、Redis摘要、指标/trace和真实五段链路验收，并修复绑定重配置状态机。 |
 | 核心组件本地403与菜单层级修复 | `records/reports/20260723-REPORT-core-component-load-menu-fix.md` | 修复9100同源入口Token键不一致导致的403，并完成“智能体中心→智能体列表/核心组件”菜单层级调整。 |
 | Genesis 英文统一登录短入口 | `records/reports/20260723-REPORT-genesis-english-short-entry.md` | 通过 Nginx 查询参数为英文客户端提供 `/portal/login?lang=en` 短入口，并保留既有资源、API 和兼容入口。 |
+| Genesis 英文路径与备份保留策略 | `records/reports/20260727-REPORT-genesis-english-path-and-backup-retention.md` | 合并同事最新代码，发布 `/portal/en/login`，收敛前端/Nginx备份并记录后端凭据阻塞。 |
 
 ## Runtime/CLI
 
@@ -98,6 +101,7 @@
 | GenB 客户端固定语言与管理端入口部署 | `records/deployments/20260722-DEPLOY-genb-client-fixed-language-console-entry.md` | 移除中英文语言切换按钮，按后端管理端权限显示对应语言的管理端入口，并完成管理员/普通用户浏览器验收。 |
 | GenC 角色菜单权限管理部署 | `records/deployments/20260722-DEPLOY-genc-role-permission-management.md` | 提交并部署 GenC `ADMIN/USER` 角色权限配置，发布共享后端及中英文管理端，完成管理员/普通用户接口和双语页面验收。 |
 | Genesis 英文统一登录短入口部署 | `records/deployments/20260723-DEPLOY-genesis-english-short-entry.md` | Nginx 按 `lang=en` 返回英文客户端入口，记录配置备份、回归结果和回滚方式。 |
+| Genesis 英文路径部署与前端备份清理 | `records/deployments/20260727-DEPLOY-genesis-english-path-and-backup-cleanup.md` | 发布 `/portal/en/login`，保留兼容入口，前端各组件和Nginx仅保留最新1–2版备份。 |
 
 ## Bug 和问题追踪
 

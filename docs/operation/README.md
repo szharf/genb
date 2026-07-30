@@ -9,6 +9,7 @@
 | 文档 | 说明 |
 |---|---|
 | `CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md` | 长短期记忆独立测试台与测试智能体逐点击、逐输入操作，覆盖服务启动、凭证、A/B 隔离、验收矩阵、证据和排障。 |
+| `SHORT_TERM_MEMORY_CONTRACT_REGISTRATION_AND_STANDALONE_TEST_GUIDE.md` | 新版“接口契约→实现”模板的短期记忆逐点击注册、上传/粘贴/手工录入、发布，以及暂不连通时的独立Swagger测试。 |
 
 ## 运维对象
 

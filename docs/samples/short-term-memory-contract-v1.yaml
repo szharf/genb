@@ -1,0 +1,151 @@
+openapi: 3.1.0
+info:
+  title: GenB Short-term Memory Service
+  version: 1.0.0
+  description: 短期记忆逻辑组件服务接口契约；本文件只用于GenB注册演示，不代表已经建立调用链。
+paths:
+  /api/v1/short-term-memory/tasks/{taskId}:
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema: { type: string, maxLength: 128 }
+    put:
+      operationId: saveTaskWorkbench
+      summary: 保存或更新跨会话任务工作台
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WorkbenchUpdate' }
+      responses:
+        '200': { description: 保存成功 }
+    get:
+      operationId: getTaskWorkbench
+      summary: 查询任务工作台
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200': { description: 查询成功 }
+        '404': { description: 当前身份范围内不存在该任务 }
+    delete:
+      operationId: deleteTaskWorkbench
+      summary: 删除任务工作台及上下文
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204': { description: 删除完成 }
+  /api/v1/short-term-memory/turns:commit:
+    post:
+      operationId: commitShortTermTurn
+      summary: 幂等提交一轮用户与智能体消息
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/UserId'
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TurnCommitRequest' }
+      responses:
+        '200': { description: 提交或幂等重放成功 }
+        '409': { description: 幂等键对应不同请求正文 }
+  /api/v1/short-term-memory/context:prepare:
+    post:
+      operationId: prepareShortTermContext
+      summary: 为当前会话准备同一任务的短期上下文
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContextPrepareRequest' }
+      responses:
+        '200': { description: 上下文准备成功 }
+components:
+  parameters:
+    TenantId:
+      name: X-Tenant-Id
+      in: header
+      required: true
+      schema: { type: string, maxLength: 128 }
+    AgentId:
+      name: X-Agent-Id
+      in: header
+      required: true
+      schema: { type: string, maxLength: 128 }
+    UserId:
+      name: X-User-Id
+      in: header
+      required: true
+      schema: { type: string, maxLength: 128 }
+  schemas:
+    WorkbenchUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, WAITING_MATERIAL, PAUSED, COMPLETED]
+        instructions:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 1000 }
+        progress: { type: string, maxLength: 4000 }
+        pendingMaterials:
+          type: array
+          maxItems: 50
+          items: { type: string, maxLength: 500 }
+        toolResults:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            required: [tool, summary]
+            properties:
+              tool: { type: string, maxLength: 128 }
+              summary: { type: string, maxLength: 2000 }
+        resumeCheckpoint: { type: string, maxLength: 2000 }
+        expiresInSeconds:
+          type: integer
+          minimum: 60
+          maximum: 2592000
+          default: 86400
+    TurnCommitRequest:
+      type: object
+      required: [taskId, sessionId, turnId, userMessage, assistantMessage, occurredAt]
+      properties:
+        taskId: { type: string, maxLength: 128 }
+        sessionId: { type: string, maxLength: 128 }
+        turnId: { type: string, maxLength: 128 }
+        userMessage: { type: string, maxLength: 16000 }
+        assistantMessage: { type: string, maxLength: 16000 }
+        occurredAt: { type: string, format: date-time }
+    ContextPrepareRequest:
+      type: object
+      required: [taskId, sessionId]
+      properties:
+        taskId: { type: string, maxLength: 128 }
+        sessionId: { type: string, maxLength: 128 }
+        query: { type: string, maxLength: 16000 }
+        maxMessages:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
