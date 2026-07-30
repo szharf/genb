@@ -1,5 +1,6 @@
 import os
 from typing import Annotated
+from uuid import uuid4
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -17,8 +18,10 @@ from .service import (
     RequirementAnalyzer,
     RequirementClarificationRequired,
     SkillAuthoringService,
+    TemplateSkillDraftWriter,
     SkillValidator,
 )
+from .inference import ModelAuthoringError, RuntimeInferenceSkillDraftWriter
 from .repository import InMemorySkillRepository, PostgreSQLSkillRepository, SkillRepository
 from .identity import (
     DevelopmentHeaderIdentityVerifier,
@@ -40,7 +43,20 @@ repository: SkillRepository = (
     if os.getenv("PLANNING_REASONING_POSTGRES_DSN")
     else InMemorySkillRepository()
 )
-authoring = SkillAuthoringService(analyzer, validator, repository)
+inference_url = os.getenv("PLANNING_REASONING_INFERENCE_URL", "").rstrip("/")
+inference_client = httpx.Client(base_url=inference_url, timeout=60.0) if inference_url else None
+draft_writer = (
+    RuntimeInferenceSkillDraftWriter(
+        client=inference_client,
+        model_alias=os.getenv("PLANNING_REASONING_MODEL_ALIAS", "planning-authoring-default"),
+    )
+    if inference_client is not None
+    else TemplateSkillDraftWriter()
+)
+authoring_mode = "MODEL" if inference_client is not None else "TEMPLATE"
+authoring = SkillAuthoringService(analyzer, validator, repository, draft_writer)
+if inference_client is not None:
+    app.router.add_event_handler("shutdown", inference_client.close)
 
 
 def configured_identity_verifier() -> DevelopmentHeaderIdentityVerifier | GenBIdentityVerifier:
@@ -105,7 +121,7 @@ def ready() -> dict[str, str]:
         raise HTTPException(status_code=503, detail="Skill版本存储不可用")
     return {
         "status": "UP",
-        "authoring": "TEMPLATE",
+        "authoring": authoring_mode,
         "store": "POSTGRESQL" if isinstance(repository, PostgreSQLSkillRepository) else "IN_MEMORY",
     }
 
@@ -134,6 +150,8 @@ def generate_skill(
     request: SkillGenerateRequest,
     identity: Annotated[InvocationIdentity, Depends(invocation_identity)],
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=128)],
+    authorization: Annotated[str, Header(alias="Authorization")] = "",
+    request_id: Annotated[str, Header(alias="X-Request-Id")] = "",
 ) -> SkillArtifactResponse:
     try:
         artifact = authoring.generate(
@@ -141,6 +159,8 @@ def generate_skill(
             tenant_id=identity.tenant_id,
             agent_id=identity.agent_id,
             idempotency_key=idempotency_key,
+            service_token=_service_token(authorization),
+            request_id=request_id or f"req_{uuid4().hex}",
         )
     except RequirementClarificationRequired as error:
         raise HTTPException(
@@ -154,6 +174,8 @@ def generate_skill(
         if str(error) == "IDEMPOTENCY_CONFLICT":
             raise HTTPException(status_code=409, detail="幂等键对应的请求内容不一致") from error
         raise
+    except ModelAuthoringError as error:
+        raise HTTPException(status_code=502, detail="规划模型生成失败") from error
     return SkillArtifactResponse(data=artifact)
 
 
@@ -184,6 +206,8 @@ def revise_skill(
     request: SkillReviseRequest,
     identity: Annotated[InvocationIdentity, Depends(invocation_identity)],
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=128)],
+    authorization: Annotated[str, Header(alias="Authorization")] = "",
+    request_id: Annotated[str, Header(alias="X-Request-Id")] = "",
 ) -> SkillArtifactResponse:
     try:
         artifact = authoring.revise(
@@ -192,6 +216,8 @@ def revise_skill(
             tenant_id=identity.tenant_id,
             agent_id=identity.agent_id,
             idempotency_key=idempotency_key,
+            service_token=_service_token(authorization),
+            request_id=request_id or f"req_{uuid4().hex}",
         )
     except KeyError as error:
         raise HTTPException(status_code=404, detail="Skill或基础版本不存在") from error
@@ -201,7 +227,13 @@ def revise_skill(
         if str(error) == "IDEMPOTENCY_CONFLICT":
             raise HTTPException(status_code=409, detail="幂等键对应的请求内容不一致") from error
         raise
+    except ModelAuthoringError as error:
+        raise HTTPException(status_code=502, detail="规划模型修订失败") from error
     return SkillArtifactResponse(data=artifact)
+
+
+def _service_token(authorization: str) -> str:
+    return authorization.removeprefix("Bearer ").strip() if authorization.startswith("Bearer ") else ""
 
 
 @app.get(

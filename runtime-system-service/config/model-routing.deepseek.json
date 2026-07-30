@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "providers": [
+    {
+      "providerId": "deepseek-direct",
+      "type": "OPENAI_COMPATIBLE",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "secretRef": "env://DEEPSEEK_API_KEY",
+      "timeoutMs": 60000
+    }
+  ],
+  "routes": [
+    {
+      "routeId": "agent-chat-primary",
+      "modelAlias": "agent-chat-default",
+      "capabilities": ["CHAT", "STREAM"],
+      "providerId": "deepseek-direct",
+      "model": "deepseek-chat"
+    },
+    {
+      "routeId": "planning-analysis-primary",
+      "modelAlias": "planning-analysis-default",
+      "capabilities": ["CHAT"],
+      "providerId": "deepseek-direct",
+      "model": "deepseek-chat"
+    },
+    {
+      "routeId": "planning-authoring-primary",
+      "modelAlias": "planning-authoring-default",
+      "capabilities": ["CHAT"],
+      "providerId": "deepseek-direct",
+      "model": "deepseek-chat"
+    }
+  ]
+}

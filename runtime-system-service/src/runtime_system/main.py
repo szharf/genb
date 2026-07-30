@@ -21,6 +21,7 @@ from .routing import build_provider_from_document
 
 def build_app():
     environment = os.getenv("APP_ENV", "local").lower()
+    runtime_environment = _runtime_environment(environment)
     routing_config = os.getenv("MODEL_ROUTING_CONFIG")
     provider = None
     if routing_config:
@@ -29,7 +30,7 @@ def build_app():
         )
         provider = build_provider_from_document(
             document,
-            environment=os.environ,
+            environment=runtime_environment,
         )
     fake_structured = os.getenv("RUNTIME_FAKE_STRUCTURED_CONTENT")
     if fake_structured:
@@ -62,6 +63,31 @@ def build_app():
     if identity_client is not None:
         app.router.add_event_handler("shutdown", identity_client.close)
     return app
+
+
+def _runtime_environment(environment: str) -> dict[str, str]:
+    values = dict(os.environ)
+    local_env_file = os.getenv("RUNTIME_LOCAL_ENV_FILE")
+    if not local_env_file:
+        return values
+    if environment == "production":
+        raise RuntimeError("RUNTIME_LOCAL_ENV_FILE is forbidden in production")
+    path = Path(local_env_file)
+    if not path.is_file() or path.stat().st_size > 65_536:
+        raise RuntimeError("RUNTIME_LOCAL_ENV_FILE must be a readable file of at most 64 KiB")
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        name, raw_value = stripped.split("=", 1)
+        name = name.strip()
+        if not name or not name.replace("_", "").isalnum() or name[0].isdigit():
+            raise RuntimeError("RUNTIME_LOCAL_ENV_FILE contains an invalid variable name")
+        value = raw_value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        values.setdefault(name, value)
+    return values
 
 
 def _bounded_int(name: str, default: int, minimum: int, maximum: int) -> int:

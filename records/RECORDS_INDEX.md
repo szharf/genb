@@ -1,5 +1,8 @@
 # 历史记录反向索引
 
+- `records/plans/20260730-PLAN-customer-ready-core-component-agent.md`：独立客户智能体、真实模型、短期记忆、规划Skill和GenB三组件绑定的完整实施计划。
+- `records/reports/20260730-REPORT-customer-ready-core-component-agent.md`：真实DeepSeek、跨session记忆、Skill生成、停绑拦截、全量自动化和浏览器验收报告。
+- `docs/operation/CUSTOMER_CORE_COMPONENT_AGENT_GUIDE.md`：面向首次使用者的启动、统一登录、客户聊天、记忆与Skill验收逐点击手册。
 - `records/plans/20260730-PLAN-planning-reasoning-service-phase1.md`：规划与推理引擎一期的需求澄清、Skill生成/校验/修订、身份、PostgreSQL和验收计划。
 - `records/reports/20260730-REPORT-planning-reasoning-service-phase1.md`：规划服务代码、两张无外键表、真实HTTP和远程PostgreSQL验收结果。
 - `docs/operation/PLANNING_REASONING_SERVICE_GUIDE.md`：面向首次使用者的启动、Swagger澄清、简单/复杂Skill、校验和修订逐步操作手册。

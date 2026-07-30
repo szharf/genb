@@ -61,3 +61,35 @@ class LongTermMemoryItem:
     memory_type: str
     content: str
     confidence: float
+
+
+@dataclass(frozen=True)
+class InferenceResult:
+    content: str
+    provider: str
+    model: str
+    input_tokens: int
+    output_tokens: int
+    request_id: str
+
+
+@dataclass(frozen=True)
+class CustomerDiagnostics:
+    component_session_id: str
+    components: tuple[str, ...]
+    context_message_count: int
+    provider: str
+    model: str
+    input_tokens: int
+    output_tokens: int
+    request_id: str
+    planning_operation: str | None = None
+
+
+@dataclass(frozen=True)
+class CustomerChatResult:
+    answer: str
+    mode: str
+    skill: dict[str, object] | None
+    committed: bool
+    diagnostics: CustomerDiagnostics

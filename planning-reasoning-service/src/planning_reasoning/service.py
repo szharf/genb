@@ -2,6 +2,7 @@ import hashlib
 import json
 import re
 from datetime import UTC, datetime
+from typing import Literal, Protocol
 from uuid import uuid4
 
 from .models import (
@@ -22,6 +23,76 @@ QUESTION_TEXT = {
     "expectedOutputs": "Skill完成后必须交付哪些结果，采用什么格式？",
     "constraints": "执行过程中有哪些业务规则、禁止事项或审批约束？",
 }
+
+
+class SkillDraftWriter(Protocol):
+    def generate(
+        self,
+        *,
+        name: str,
+        request: SkillGenerateRequest,
+        complexity: Literal["SIMPLE", "COMPLEX"],
+        service_token: str,
+        request_id: str,
+    ) -> str: ...
+
+    def revise(
+        self,
+        *,
+        base_markdown: str,
+        request: SkillReviseRequest,
+        service_token: str,
+        request_id: str,
+    ) -> str: ...
+
+    def repair(
+        self,
+        *,
+        invalid_markdown: str,
+        issues: list[ValidationIssue],
+        service_token: str,
+        request_id: str,
+    ) -> str: ...
+
+
+class TemplateSkillDraftWriter:
+    def generate(
+        self,
+        *,
+        name: str,
+        request: SkillGenerateRequest,
+        complexity: Literal["SIMPLE", "COMPLEX"],
+        service_token: str,
+        request_id: str,
+    ) -> str:
+        del service_token, request_id
+        return (
+            _render_complex_skill(name, request)
+            if complexity == "COMPLEX"
+            else _render_simple_skill(name, request)
+        )
+
+    def revise(
+        self,
+        *,
+        base_markdown: str,
+        request: SkillReviseRequest,
+        service_token: str,
+        request_id: str,
+    ) -> str:
+        del service_token, request_id
+        return base_markdown.rstrip() + _revision_section(request)
+
+    def repair(
+        self,
+        *,
+        invalid_markdown: str,
+        issues: list[ValidationIssue],
+        service_token: str,
+        request_id: str,
+    ) -> str:
+        del issues, service_token, request_id
+        return invalid_markdown
 
 
 class RequirementAnalyzer:
@@ -91,10 +162,12 @@ class SkillAuthoringService:
         analyzer: RequirementAnalyzer,
         validator: SkillValidator,
         repository: SkillRepository,
+        draft_writer: SkillDraftWriter | None = None,
     ) -> None:
         self._analyzer = analyzer
         self._validator = validator
         self._repository = repository
+        self._draft_writer = draft_writer or TemplateSkillDraftWriter()
 
     def generate(
         self,
@@ -103,6 +176,8 @@ class SkillAuthoringService:
         tenant_id: str,
         agent_id: str,
         idempotency_key: str,
+        service_token: str = "",
+        request_id: str = "planning-generate",
     ) -> SkillArtifact:
         analysis = self._analyzer.analyze(request.requirements)
         if analysis.status != "READY":
@@ -116,15 +191,42 @@ class SkillAuthoringService:
         if existing is not None:
             return existing
         skill_name = _skill_name(request.name)
-        markdown = (
-            _render_complex_skill(skill_name, request)
-            if analysis.complexity == "COMPLEX"
-            else _render_simple_skill(skill_name, request)
+        markdown = self._draft_writer.generate(
+            name=skill_name,
+            request=request,
+            complexity=analysis.complexity,
+            service_token=service_token,
+            request_id=request_id,
         )
         validation = self._validator.validate(
             markdown,
             require_mcp=any(tool.protocol == "MCP" for tool in request.requirements.tool_references),
         )
+        template_fallback = False
+        if not validation.valid:
+            markdown = self._draft_writer.repair(
+                invalid_markdown=markdown,
+                issues=validation.issues,
+                service_token=service_token,
+                request_id=f"{request_id}-repair",
+            )
+            validation = self._validator.validate(
+                markdown,
+                require_mcp=any(tool.protocol == "MCP" for tool in request.requirements.tool_references),
+            )
+        if not validation.valid:
+            template_fallback = True
+            markdown = TemplateSkillDraftWriter().generate(
+                name=skill_name,
+                request=request,
+                complexity=analysis.complexity,
+                service_token="",
+                request_id=request_id,
+            )
+            validation = self._validator.validate(
+                markdown,
+                require_mcp=any(tool.protocol == "MCP" for tool in request.requirements.tool_references),
+            )
         artifact = SkillArtifact(
             skillId=f"skill_{uuid4().hex}",
             version=1,
@@ -132,7 +234,9 @@ class SkillAuthoringService:
             complexity=analysis.complexity,
             skillMarkdown=markdown,
             decisionSummary=(
-                "需求完整并触发复杂模板，已加入工具声明、人工确认和失败升级规则。"
+                "模型草稿及自动修复未通过校验，已回退到安全标准模板。"
+                if template_fallback
+                else "需求完整并触发复杂模板，已加入工具声明、人工确认和失败升级规则。"
                 if analysis.complexity == "COMPLEX"
                 else "需求完整且未触发复杂模板规则，已生成标准Skill草稿。"
             ),
@@ -157,6 +261,8 @@ class SkillAuthoringService:
         tenant_id: str,
         agent_id: str,
         idempotency_key: str,
+        service_token: str = "",
+        request_id: str = "planning-revise",
     ) -> SkillArtifact:
         base = self._repository.get(
             skill_id, request.base_version, tenant_id, agent_id
@@ -166,19 +272,12 @@ class SkillAuthoringService:
         fingerprint = hashlib.sha256(
             request.model_dump_json(by_alias=True).encode("utf-8")
         ).hexdigest()
-        revision_section = f"""
-
-## Revision Context
-
-- Base version: {request.base_version}
-- Failed step: {request.failure.failed_step}
-- Error code: `{request.failure.error_code}`
-- Failure summary: {request.failure.summary}
-- Adjustment goal: {request.adjustment_goal}
-
-执行新版本时先采用上述调整目标；如果仍超出Skill异常规则，必须再次暂停并请求人工或规划服务修订。
-"""
-        markdown = base.skill_markdown.rstrip() + revision_section
+        markdown = self._draft_writer.revise(
+            base_markdown=base.skill_markdown,
+            request=request,
+            service_token=service_token,
+            request_id=request_id,
+        )
         artifact = SkillArtifact(
             skillId=base.skill_id,
             version=base.version + 1,
@@ -204,6 +303,21 @@ class RequirementClarificationRequired(Exception):
     def __init__(self, analysis: RequirementAnalysis) -> None:
         super().__init__("REQUIREMENT_CLARIFICATION_REQUIRED")
         self.analysis = analysis
+
+
+def _revision_section(request: SkillReviseRequest) -> str:
+    return f"""
+
+## Revision Context
+
+- Base version: {request.base_version}
+- Failed step: {request.failure.failed_step}
+- Error code: `{request.failure.error_code}`
+- Failure summary: {request.failure.summary}
+- Adjustment goal: {request.adjustment_goal}
+
+执行新版本时先采用上述调整目标；如果仍超出Skill异常规则，必须再次暂停并请求人工或规划服务修订。
+"""
 
 
 def _skill_name(display_name: str) -> str:

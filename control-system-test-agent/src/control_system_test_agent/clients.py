@@ -13,6 +13,7 @@ from .models import (
     PreparedContext,
     ExtractionStatus,
     LongTermMemoryItem,
+    InferenceResult,
 )
 
 
@@ -405,6 +406,54 @@ class PlanningReasoningClient:
         )
         data = _required_object(_object(response, f"planning {normalized.lower()}", request_id), "data")
         return dict(data)
+
+
+class RuntimeInferenceClient:
+    def __init__(self, client: httpx.AsyncClient, model_alias: str = "agent-chat-default") -> None:
+        self._client = client
+        self._model_alias = model_alias
+
+    async def complete(
+        self,
+        *,
+        base_url: str,
+        service_credential: str,
+        actor_token: str,
+        messages: Sequence[Mapping[str, str]],
+        request_id: str,
+    ) -> InferenceResult:
+        response = await _post(
+            self._client,
+            f"{base_url.rstrip('/')}/api/v1/runtime-system/inference",
+            operation="invoke runtime inference",
+            request_id=request_id,
+            headers={
+                "Authorization": f"Bearer {service_credential}",
+                "X-GenB-Actor-Token": actor_token,
+                "X-Request-Id": request_id,
+            },
+            json={
+                "capability": "AGENT_CHAT",
+                "modelAlias": self._model_alias,
+                "messages": [dict(message) for message in messages],
+            },
+        )
+        payload = _object(response, "invoke runtime inference", request_id)
+        data = _required_object(payload, "data")
+        usage = _required_object(data, "usage")
+        input_tokens = usage.get("inputTokens")
+        output_tokens = usage.get("outputTokens")
+        if not isinstance(input_tokens, int) or not isinstance(output_tokens, int):
+            raise _invalid_payload("invoke runtime inference", request_id)
+        meta = _required_object(payload, "meta")
+        return InferenceResult(
+            content=_required_string(data, "content"),
+            provider=_required_string(data, "provider"),
+            model=_required_string(data, "model"),
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            request_id=_required_string(meta, "requestId"),
+        )
 
 
 async def _post(

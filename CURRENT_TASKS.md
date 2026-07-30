@@ -1,5 +1,33 @@
 # 当前任务看板
 
+## 任务：客户可验收的核心组件智能体与真实模型链路
+
+详细计划：`records/plans/20260730-PLAN-customer-ready-core-component-agent.md`
+
+### 1. 目标
+
+- 将现有开发接口测试页升级为客户可以直接使用的独立智能体：只通过自然语言聊天，不要求客户选择组件操作或填写JSON。
+- 独立智能体项目自行提供前端与后端，GenB只负责入口、授权、组件注册、绑定和组件会话；本地可直接通过智能体独立端口访问。
+- 使用Runtime System Inference Engine统一调用真实模型；短期记忆负责上下文存取，规划与推理负责需求澄清、Skill生成、校验和修订。
+- 以真实模型、真实GenB绑定、真实Redis/PostgreSQL和客户可见结果完成端到端验收。
+
+### 2. 当前进度
+
+- M0-M7已完成：独立客户页面、真实模型、短期记忆、规划Skill、GenB三组件绑定、长期服务凭证、正反向验收和文档全部完成。
+- 当前本地入口：`http://localhost:9100/core-agent/`；智能体自身服务为`127.0.0.1:18714`，9100仅做统一登录态下的反向代理。
+- 当前真实运行：短期记忆`18705`、规划`18712`、Runtime推理`18704`、客户智能体`18714`；GenB后端`8581`、统一入口`9100`。
+- 报告：`records/reports/20260730-REPORT-customer-ready-core-component-agent.md`。
+
+### 3. 完成标准
+
+- [x] 独立智能体地址可直接打开客户级聊天页面，页面不展示`ANALYZE/GENERATE/VALIDATE/REVISE`或原始JSON输入表单。
+- [x] 同一个逻辑智能体通过GenB组件会话解析并调用`SHORT_TERM_MEMORY`、`PLANNING_REASONING`和`INFERENCE_ENGINE`的启用绑定。
+- [x] 普通聊天真实调用模型；同一task跨session能够召回上下文，未绑定或错误凭证调用失败。
+- [x] 规划对话能够主动澄清缺失需求，并由真实模型生成可校验Skill；规划组件仍不执行Skill或MCP。
+- [x] 客户页面展示正常回答；管理员可展开查看脱敏后的组件、模型、trace和记忆命中证据。
+- [x] 服务凭证和Provider API Key只保存在服务端运行环境，不进入浏览器、数据库配置JSON、日志和Git。
+- [x] 单元、契约、集成、真实HTTP、浏览器和负向路径全部通过，形成操作手册和验收报告。
+
 ## 任务：规划与推理引擎接入 GenB 与测试智能体
 
 详细计划：`records/plans/20260730-PLAN-planning-reasoning-genb-agent-integration.md`
