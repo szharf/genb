@@ -50,6 +50,7 @@
 - `operation/README.md`：运维目录说明。
 - `operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md`：长短期记忆独立测试台与测试智能体详细操作、启动、凭证、隔离、验收和排障手册。
 - `operation/SHORT_TERM_MEMORY_CONTRACT_REGISTRATION_AND_STANDALONE_TEST_GUIDE.md`：短期记忆接口契约上传/粘贴/手工注册、发布、实现版本约束及独立服务Swagger逐点击测试；明确本轮暂不连通。
+- `operation/PLANNING_REASONING_SERVICE_GUIDE.md`：规划与推理引擎的启动、Swagger需求澄清、简单/复杂Skill生成、MCP声明、校验和版本修订逐步操作。
 
 ## 样例
 

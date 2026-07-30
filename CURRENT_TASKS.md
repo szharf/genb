@@ -1,5 +1,30 @@
 # 当前任务看板
 
+## 任务：规划与推理引擎独立服务一期
+
+详细计划：`records/plans/20260730-PLAN-planning-reasoning-service-phase1.md`
+
+### 1. 目标
+
+- 新建固定组件`PLANNING_REASONING`的独立逻辑服务，归属Control System。
+- 先澄清用户需求，再按简单或复杂场景生成可审计、可版本化的Skill文档。
+- 复杂Skill可声明MCP工具和异常规则；规划引擎只生成、校验和修订，不执行工具。
+- 复用GenB服务凭证、Actor Token和组件绑定身份模型。
+
+### 2. 当前进度
+
+- 已完成：服务、PostgreSQL持久化、GenB身份、OpenAPI、测试和本地HTTP验收。
+- 当前运行：`127.0.0.1:18712`，`authoring=TEMPLATE`，`store=POSTGRESQL`。
+- 本轮只开发和独立验收服务；GenB注册、页面测试台、智能体绑定联通另立任务。
+
+### 3. 完成标准
+
+- [x] 需求不完整时返回明确澄清问题，不能生成伪完整Skill。
+- [x] 简单需求生成标准Skill，复杂需求使用带MCP、人工确认和异常恢复的模板。
+- [x] 可校验Skill结构并基于失败事件生成新版本，旧版本保持可查询。
+- [x] 生成结果不包含模型原始思维链，服务不执行任何工具。
+- [x] OpenAPI、身份负向测试、全量自动化、操作文档、报告和提交完整。
+
 ## 任务：智能体绑定、统一退出、测试凭证与短期记忆聊天智能体
 
 详细计划：`records/plans/20260730-PLAN-agent-binding-auth-credential-and-memory-chat.md`

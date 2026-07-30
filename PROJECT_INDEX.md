@@ -66,6 +66,7 @@
 | Runtime System服务 | `runtime-system-service` | 核心组件平台新执行面；Iteration 1完成Fake纵向切片，Iteration 2完成离线可验证的Direct Provider与配置路由主链路，不依赖旧Runtime SDK。 |
 | Control System服务 | `control-system-service` | Control System执行面；当前完成Short-term Memory、Redis、GenB内省/JWKS身份接入和真实A/B隔离联调。 |
 | 独立短期记忆参考服务 | `short-term-memory-service` | 不依赖旧SDK的短期记忆逻辑服务样例；提供5个HTTP操作、四维隔离、TTL、幂等、脱敏及内存/Redis Adapter，本轮未接入GenB运行链。 |
+| 规划与推理引擎服务 | `planning-reasoning-service` | 固定组件`PLANNING_REASONING`的一期独立逻辑服务；提供需求澄清、简单/复杂Skill生成、MCP声明、校验、版本修订、GenB身份和PostgreSQL持久化。 |
 | Control System测试智能体 | `control-system-test-agent` | 单代码多逻辑实例的薄HTTP调用方；用于组件会话、长短记忆、隔离与失败矩阵自动验收，不依赖旧Runtime SDK。 |
 | Gen-B 后端 | `gen-b/gen-b-backend` | 登录、用户、角色、权限、智能体、授权申请、审批、状态、部署管理，以及核心组件目录、配置、绑定、治理、服务凭证和短时组件会话控制面（Iteration 5）。 |
 | Gen-B 客户端 | `gen-b/gen-b-client` | 业务用户门户：我的智能体、智能体市场、我的申请、个人中心。 |
