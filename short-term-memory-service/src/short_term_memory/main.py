@@ -1,6 +1,7 @@
 import os
-from typing import Annotated
+from typing import Annotated, Callable
 
+import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException
 from redis import Redis
 
@@ -15,6 +16,12 @@ from .models import (
     WorkbenchUpdate,
 )
 from .service import InMemoryTaskStore, RedisTaskStore, ShortTermMemoryService
+from .identity import (
+    DevelopmentHeaderIdentityVerifier,
+    GenBIdentityVerifier,
+    IdentityProblem,
+    InvocationIdentity,
+)
 
 
 app = FastAPI(
@@ -44,12 +51,79 @@ def configured_memory() -> ShortTermMemoryService:
 memory = configured_memory()
 
 
+def configured_identity_verifier() -> DevelopmentHeaderIdentityVerifier | GenBIdentityVerifier:
+    mode = os.getenv("SHORT_TERM_MEMORY_AUTH_MODE", "development_headers").lower()
+    if mode == "development_headers":
+        return DevelopmentHeaderIdentityVerifier()
+    if mode != "genb":
+        raise RuntimeError("SHORT_TERM_MEMORY_AUTH_MODE must be development_headers or genb")
+    genb_url = os.getenv("SHORT_TERM_MEMORY_GENB_URL", "http://127.0.0.1:8581/api").rstrip("/")
+    return GenBIdentityVerifier(
+        client=httpx.Client(timeout=2.0),
+        jwks_url=f"{genb_url}/.well-known/jwks.json",
+        introspection_url=f"{genb_url}/v1/internal/service-credentials:introspect",
+        internal_token=os.getenv("SHORT_TERM_MEMORY_GENB_INTERNAL_TOKEN", ""),
+        issuer=os.getenv("SHORT_TERM_MEMORY_ACTOR_ISSUER", "genb"),
+        audience=os.getenv("SHORT_TERM_MEMORY_ACTOR_AUDIENCE", "control-system"),
+    )
+
+
+identity_verifier = configured_identity_verifier()
+
+
 def caller_scope(
-    tenant_id: Annotated[Identifier, Header(alias="X-Tenant-Id")],
-    agent_id: Annotated[Identifier, Header(alias="X-Agent-Id")],
-    user_id: Annotated[Identifier, Header(alias="X-User-Id")],
+    required_scope: str,
+    tenant_id: str,
+    agent_id: str,
+    user_id: str,
+    authorization: str,
+    actor_token: str,
+    request_id: str,
 ) -> CallerScope:
-    return CallerScope(tenant_id=tenant_id, agent_id=agent_id, user_id=user_id)
+    try:
+        if isinstance(identity_verifier, DevelopmentHeaderIdentityVerifier):
+            identity = identity_verifier.verify_headers(
+                tenant_id=tenant_id, agent_id=agent_id, user_id=user_id
+            )
+        else:
+            service_token = authorization.removeprefix("Bearer ") if authorization.startswith("Bearer ") else ""
+            identity = identity_verifier.verify(
+                service_token=service_token,
+                actor_token=actor_token,
+                required_component="SHORT_TERM_MEMORY",
+                required_scope=required_scope,
+                request_id=request_id,
+            )
+    except PermissionError as error:
+        raise HTTPException(status_code=401, detail="调用身份无效") from error
+    except IdentityProblem as error:
+        raise HTTPException(status_code=error.status_code, detail=str(error)) from error
+    return CallerScope(
+        tenant_id=identity.tenant_id,
+        agent_id=identity.agent_id,
+        user_id=identity.user_id,
+    )
+
+
+def require_scope(required_scope: str) -> Callable[..., CallerScope]:
+    def dependency(
+        tenant_id: Annotated[str, Header(alias="X-Tenant-Id")] = "",
+        agent_id: Annotated[str, Header(alias="X-Agent-Id")] = "",
+        user_id: Annotated[str, Header(alias="X-User-Id")] = "",
+        authorization: Annotated[str, Header(alias="Authorization")] = "",
+        actor_token: Annotated[str, Header(alias="X-GenB-Actor-Token")] = "",
+        request_id: Annotated[str, Header(alias="X-Request-Id")] = "",
+    ) -> CallerScope:
+        return caller_scope(
+            required_scope, tenant_id, agent_id, user_id,
+            authorization, actor_token, request_id,
+        )
+    return dependency
+
+
+read_scope = require_scope("component:short-term-memory:read")
+write_scope = require_scope("component:short-term-memory:write")
+delete_scope = require_scope("component:short-term-memory:delete")
 
 
 @app.get("/health/live", tags=["health"])
@@ -77,7 +151,7 @@ def ready() -> dict[str, str]:
 def save_task(
     task_id: Identifier,
     request: WorkbenchUpdate,
-    scope: Annotated[CallerScope, Depends(caller_scope)],
+    scope: Annotated[CallerScope, Depends(write_scope)],
 ) -> TaskWorkbenchResponse:
     return {"data": memory.save_workbench(scope, task_id, request)}
 
@@ -90,7 +164,7 @@ def save_task(
 )
 def get_task(
     task_id: Identifier,
-    scope: Annotated[CallerScope, Depends(caller_scope)],
+    scope: Annotated[CallerScope, Depends(read_scope)],
 ) -> TaskWorkbenchResponse:
     task = memory.get_task(scope, task_id)
     if task is None:
@@ -107,7 +181,7 @@ def get_task(
 )
 def delete_task(
     task_id: Identifier,
-    scope: Annotated[CallerScope, Depends(caller_scope)],
+    scope: Annotated[CallerScope, Depends(delete_scope)],
 ) -> None:
     memory.delete_task(scope, task_id)
 
@@ -120,7 +194,7 @@ def delete_task(
 )
 def commit_turn(
     request: TurnCommitRequest,
-    scope: Annotated[CallerScope, Depends(caller_scope)],
+    scope: Annotated[CallerScope, Depends(write_scope)],
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=128)],
 ) -> TurnCommitResponse:
     try:
@@ -139,6 +213,6 @@ def commit_turn(
 )
 def prepare_context(
     request: ContextPrepareRequest,
-    scope: Annotated[CallerScope, Depends(caller_scope)],
+    scope: Annotated[CallerScope, Depends(read_scope)],
 ) -> ContextPrepareResponse:
     return {"data": memory.prepare_context(scope, request)}

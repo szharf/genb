@@ -1,5 +1,7 @@
 # 短期记忆接口契约注册与独立服务测试逐点击手册
 
+> 历史阶段提示：本文记录2026-07-30“暂不连通”的独立验收阶段。运行联通已经完成，当前注册、绑定、服务直测和智能体测试应使用`docs/operation/SHORT_TERM_MEMORY_RUNTIME_CONNECTION_AND_DUAL_TESTBENCH_GUIDE.md`。
+
 > 版本：1.0
 > 日期：2026-07-30
 > 适用对象：第一次使用GenB的管理员、产品经理、测试人员

@@ -1,5 +1,9 @@
 # 历史记录反向索引
 
+- `records/plans/20260730-PLAN-short-term-memory-runtime-connection-and-dual-testbench.md`：独立短期记忆服务与GenB真实联通、管理员服务直测和智能体绑定测试双路径的详细任务计划。
+- `records/reports/20260730-REPORT-short-term-memory-runtime-connection-and-dual-testbench.md`：短期记忆服务真实注册、双模式测试台、可信身份、远程开发数据和端到端验收报告。
+- `docs/operation/SHORT_TERM_MEMORY_RUNTIME_CONNECTION_AND_DUAL_TESTBENCH_GUIDE.md`：面向零基础管理员的注册结果检查、服务直测、凭证获取、智能体测试和负向测试逐点击手册。
+
 更新时间：2026-07-30
 
 本文按主题索引 `records/` 下的历史记录，用于快速追溯背景、已做过的验证和历史结论。历史记录可信度低于当前代码，仅作为线索。

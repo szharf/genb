@@ -1,5 +1,29 @@
 # 当前任务看板
 
+## 任务：短期记忆运行联通与双模式测试台
+
+详细计划：`records/plans/20260730-PLAN-short-term-memory-runtime-connection-and-dual-testbench.md`
+
+### 1. 目标
+
+将独立短期记忆服务真实注册到GenB，发布配置并绑定专用测试智能体；同时把现有仅支持智能体绑定的测试台拆成“管理员服务直测”和“智能体绑定测试”两条路径。
+
+### 2. 完成标准
+
+- [x] 管理员可不选择智能体、不填写服务凭证，直接测试已注册、启用的Implementation和已发布配置。
+- [x] 智能体测试继续强制校验长期服务凭证、agentId、启用绑定、Implementation和配置。
+- [x] 独立短期记忆服务验证GenB签名身份，不相信调用者自报身份Header。
+- [x] 两种模式均真实完成短期记忆写入和跨session恢复。
+- [x] 远程开发库只追加或更新本任务测试记录，实际表不创建物理外键。
+- [x] 自动化、双语构建、真实Redis、浏览器逐点击和负向矩阵通过。
+- [x] 更新零基础点击操作手册、验收报告和索引。
+
+### 3. 当前进度
+
+- 已完成：M0-M6全部工作，管理员服务直测和智能体绑定测试均已真实通过。
+- 当前运行：6379、8581、9000、9100、18705；新源码页面使用9000入口。
+- 报告：`records/reports/20260730-REPORT-short-term-memory-runtime-connection-and-dual-testbench.md`。
+
 ## 任务：独立短期记忆服务与核心组件接口契约模板
 
 详细计划：`records/plans/20260730-PLAN-standalone-short-term-memory-and-component-contract-template.md`
