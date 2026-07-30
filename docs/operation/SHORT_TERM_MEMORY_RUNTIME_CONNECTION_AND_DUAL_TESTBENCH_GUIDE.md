@@ -3,7 +3,7 @@
 > 版本：1.0
 > 日期：2026-07-30
 > 适用对象：第一次使用GenB的管理员、测试人员和智能体开发人员
-> 本地管理端：`http://127.0.0.1:9000/genb/core-components/SHORT_TERM_MEMORY`
+> 本地管理端：`http://localhost:9100/genb/core-components/SHORT_TERM_MEMORY`
 > 短期记忆服务：`http://127.0.0.1:18705`
 
 ## 1. 先理解两个测试按钮的区别
@@ -34,15 +34,15 @@
 ## 3. 启动前检查
 
 1. 打开PowerShell。
-2. 执行`Get-NetTCPConnection -State Listen -LocalPort 6379,8581,9000,18705`。
-3. 应看到：Redis `6379`、GenB后端`8581`、管理端`9000`、短期记忆服务`18705`。
+2. 执行`Get-NetTCPConnection -State Listen -LocalPort 6379,8581,9100,18705`。
+3. 应看到：Redis `6379`、GenB后端`8581`、最新GenB管理端`9100`、短期记忆服务`18705`。本地不再启动`9000`备用入口。
 4. 浏览器打开`http://127.0.0.1:18705/health/ready`。
 5. 应看到`status=UP`和`store=REDIS`。
 6. 如果`18705`没有启动，必须使用`SHORT_TERM_MEMORY_AUTH_MODE=genb`和Redis模式启动；不能用`development_headers`做绑定验收。
 
 ## 4. 从页面检查注册结果
 
-1. 打开`http://127.0.0.1:9000/genb/core-components/SHORT_TERM_MEMORY`。
+1. 打开`http://localhost:9100/genb/core-components/SHORT_TERM_MEMORY`。
 2. 使用具有核心组件权限的管理员身份进入页面。
 3. 点击“接口契约”。
 4. 找到版本`1.0.0`，状态应为“已发布”。

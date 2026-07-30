@@ -5,7 +5,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 
-BASE_URL = os.getenv("GENB_BROWSER_BASE_URL", "http://127.0.0.1:9000")
+BASE_URL = os.getenv("GENB_BROWSER_BASE_URL", "http://localhost:9100")
 PASSWORD = os.environ["GENB_TEST_PASSWORD"]
 OUTPUT = Path(os.getenv(
     "GENB_BROWSER_EVIDENCE",
