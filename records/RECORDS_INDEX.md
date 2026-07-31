@@ -1,5 +1,7 @@
 # 历史记录反向索引
 
+- `records/reports/20260731-REPORT-genb-local-database-migration-and-test-agent-cleanup.md`：服务器 GenB 数据恢复到本地 `genb_local`、真实调用验收及两个本地测试智能体的服务器事务清理记录。
+- `records/bugs/20260731-BUG-agent-name-question-marks.md`：PowerShell JSON 请求未显式使用 UTF-8，导致两个测试智能体中文字段被写成问号的根因、修复和验证。
 - `records/plans/20260730-PLAN-customer-ready-core-component-agent.md`：独立客户智能体、真实模型、短期记忆、规划Skill和GenB三组件绑定的完整实施计划。
 - `records/reports/20260730-REPORT-customer-ready-core-component-agent.md`：真实DeepSeek、跨session记忆、Skill生成、停绑拦截、全量自动化和浏览器验收报告。
 - `docs/operation/CUSTOMER_CORE_COMPONENT_AGENT_GUIDE.md`：面向首次使用者的启动、统一登录、客户聊天、记忆与Skill验收逐点击手册。

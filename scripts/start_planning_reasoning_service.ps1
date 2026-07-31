@@ -1,12 +1,28 @@
 param(
     [int]$Port = 18712,
-    [ValidateSet('development_headers', 'genb')][string]$AuthMode = 'development_headers'
+    [ValidateSet('development_headers', 'genb')][string]$AuthMode = 'development_headers',
+    [switch]$UseLocalGenB
 )
 
 $ErrorActionPreference = 'Stop'
 $projectDir = 'D:\code\opencode\genb\planning-reasoning-service'
 $python = 'D:\code\opencode\genb\gen-o\backend\.venv\Scripts\python.exe'
 $logDir = 'D:\code\opencode\genb\.logs\planning-reasoning-local'
+
+if ($UseLocalGenB) {
+    $backendConfig = Get-Content -LiteralPath 'D:\code\opencode\genb\gen-b\gen-b-backend\src\main\resources\application.yml' -Raw
+    $userMatch = [regex]::Match($backendConfig, 'GENB_DB_USERNAME:([^}]+)')
+    $passwordMatch = [regex]::Match($backendConfig, 'GENB_DB_PASSWORD:([^}]+)')
+    $dbUser = if ($userMatch.Success) { $userMatch.Groups[1].Value.Trim() } else { [regex]::Match($backendConfig, 'username:\s+([^\r\n]+)').Groups[1].Value.Trim() }
+    $env:PGPASSWORD = if ($passwordMatch.Success) { $passwordMatch.Groups[1].Value.Trim() } else { [regex]::Match($backendConfig, 'password:\s+([^\r\n]+)').Groups[1].Value.Trim() }
+    $env:PLANNING_REASONING_POSTGRES_DSN = "host=127.0.0.1 port=5432 dbname=genb_local user=$dbUser sslmode=disable"
+    $protectedToken = (Get-Content -LiteralPath 'D:\code\opencode\genb\.local-secrets\genb-component-internal-token.dpapi' -Raw).Trim() |
+        ConvertTo-SecureString
+    $env:PLANNING_REASONING_GENB_INTERNAL_TOKEN = [Net.NetworkCredential]::new('', $protectedToken).Password
+    $env:PLANNING_REASONING_GENB_URL = 'http://127.0.0.1:8581/api'
+    $env:PLANNING_REASONING_INFERENCE_URL = 'http://127.0.0.1:18704'
+    $env:PLANNING_REASONING_MODEL_ALIAS = 'planning-authoring-default'
+}
 
 if (-not $env:PLANNING_REASONING_POSTGRES_DSN) {
     throw 'PLANNING_REASONING_POSTGRES_DSN must be provided through the process environment or secret manager'

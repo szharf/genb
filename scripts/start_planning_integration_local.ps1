@@ -64,9 +64,12 @@ function Invoke-GenB([string]$Method, [string]$Path, $Body = $null) {
         Method = $Method
         Uri = "$backendUrl$Path"
         Headers = @{ Authorization = "Bearer $script:token" }
-        ContentType = 'application/json'
+        ContentType = 'application/json; charset=utf-8'
     }
-    if ($null -ne $Body) { $parameters.Body = $Body | ConvertTo-Json -Depth 100 }
+    if ($null -ne $Body) {
+        $json = $Body | ConvertTo-Json -Depth 100
+        $parameters.Body = [System.Text.Encoding]::UTF8.GetBytes($json)
+    }
     $response = Invoke-RestMethod @parameters
     if ($response.code -ne 200) { throw "GenB request failed: $Path" }
     return $response.data
@@ -80,6 +83,15 @@ if (Test-Path $internalSecretPath) {
     $internalToken = New-RandomSecret
     Save-ProtectedSecret $internalSecretPath $internalToken
 }
+
+$application = Get-Content -LiteralPath (Join-Path $backendDir 'src\main\resources\application.yml') -Raw
+$userMatch = [regex]::Match($application, 'GENB_DB_USERNAME:([^}]+)')
+$passwordMatch = [regex]::Match($application, 'GENB_DB_PASSWORD:([^}]+)')
+$dbUser = if ($env:GENB_DB_USERNAME) { $env:GENB_DB_USERNAME } elseif ($userMatch.Success) { $userMatch.Groups[1].Value.Trim() } else { [regex]::Match($application, 'username:\s+([^\r\n]+)').Groups[1].Value.Trim() }
+$dbPassword = if ($env:GENB_DB_PASSWORD) { $env:GENB_DB_PASSWORD } elseif ($passwordMatch.Success) { $passwordMatch.Groups[1].Value.Trim() } else { [regex]::Match($application, 'password:\s+([^\r\n]+)').Groups[1].Value.Trim() }
+$env:GENB_DB_URL = 'jdbc:postgresql://127.0.0.1:5432/genb_local?currentSchema=bank_agent_db&sslmode=disable'
+$env:GENB_DB_USERNAME = $dbUser
+$env:GENB_DB_PASSWORD = $dbPassword
 
 Stop-LocalPort 8581 'GenBConsoleApplication'
 Stop-LocalPort 18712 'planning_reasoning.main'
@@ -98,11 +110,7 @@ Start-Process -FilePath $maven -ArgumentList @(
   -RedirectStandardError (Join-Path $logDir 'backend.stderr.log') | Out-Null
 Wait-Url "$backendUrl/actuator/health" 90
 
-$application = Get-Content -LiteralPath (Join-Path $backendDir 'src\main\resources\application.yml') -Raw
-$jdbc = [regex]::Match($application, 'url:\s+jdbc:postgresql://([^:/]+):(\d+)/([^?\r\n]+)').Groups
-$dbUser = [regex]::Match($application, 'username:\s+([^\r\n]+)').Groups[1].Value.Trim()
-$dbPassword = [regex]::Match($application, 'password:\s+([^\r\n]+)').Groups[1].Value.Trim()
-$env:PLANNING_REASONING_POSTGRES_DSN = "host=$($jdbc[1].Value) port=$($jdbc[2].Value) dbname=$($jdbc[3].Value) user=$dbUser password=$dbPassword sslmode=disable"
+$env:PLANNING_REASONING_POSTGRES_DSN = "host=127.0.0.1 port=5432 dbname=genb_local user=$dbUser password=$dbPassword sslmode=disable"
 $env:PLANNING_REASONING_AUTH_MODE = 'genb'
 $env:PLANNING_REASONING_GENB_URL = $backendUrl
 $env:PLANNING_REASONING_GENB_INTERNAL_TOKEN = $internalToken
@@ -138,8 +146,10 @@ $existingAgent = Invoke-RestMethod -Method Get -Uri "$backendUrl/v1/agents/$agen
 if ($existingAgent.code -ne 200) {
     Invoke-GenB Post '/v1/agents' @{
         agentId = $agentId; name = '规划与推理核心组件测试智能体'
+        nameEn = 'Planning and Reasoning Core Component Test Agent'
         description = '通过GenB绑定真实调用规划与推理引擎，测试需求澄清、Skill生成、校验和修订。'
-        version = 'v1.0.0'; category = '核心组件测试'; securityLevel = 'L3'
+        descriptionEn = 'Tests requirement clarification, Skill generation, validation, and revision through the GenB-bound Planning and Reasoning component.'
+        version = 'v1.0.0'; category = '核心组件测试'; categoryEn = 'Core Component Testing'; securityLevel = 'L3'
         status = 'AUTHORIZED'; runtimeState = 'RUNNING'; businessAttribute = 'SYSTEM_AGENT'
         businessStatus = 'RUNNING'; owner = $Username; host = '127.0.0.1'; port = 18713
         workDirectory = $agentDir
@@ -148,7 +158,10 @@ if ($existingAgent.code -ne 200) {
 } else {
     $agent = $existingAgent.data
     $agent.name = '规划与推理核心组件测试智能体'
+    $agent.nameEn = 'Planning and Reasoning Core Component Test Agent'
     $agent.description = '通过GenB绑定真实调用规划与推理引擎，测试需求澄清、Skill生成、校验和修订。'
+    $agent.descriptionEn = 'Tests requirement clarification, Skill generation, validation, and revision through the GenB-bound Planning and Reasoning component.'
+    $agent.category = '核心组件测试'; $agent.categoryEn = 'Core Component Testing'
     $agent.status = 'AUTHORIZED'; $agent.runtimeState = 'RUNNING'; $agent.businessStatus = 'RUNNING'
     $agent.host = '127.0.0.1'; $agent.port = 18713; $agent.workDirectory = $agentDir
     $agent.startCommand = 'python -m uvicorn control_system_test_agent.web:app --host 127.0.0.1 --port 18713'

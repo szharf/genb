@@ -58,9 +58,12 @@ function Invoke-GenB([string]$Method, [string]$Path, $Body = $null) {
         Method = $Method
         Uri = "$backendUrl$Path"
         Headers = @{ Authorization = "Bearer $script:userToken" }
-        ContentType = 'application/json'
+        ContentType = 'application/json; charset=utf-8'
     }
-    if ($null -ne $Body) { $parameters.Body = $Body | ConvertTo-Json -Depth 100 }
+    if ($null -ne $Body) {
+        $json = $Body | ConvertTo-Json -Depth 100
+        $parameters.Body = [System.Text.Encoding]::UTF8.GetBytes($json)
+    }
     try {
         $response = Invoke-RestMethod @parameters
     } catch {
@@ -103,6 +106,15 @@ if (-not (Test-Path -LiteralPath $internalSecretPath)) {
     throw 'GenB component internal token has not been initialized'
 }
 $internalToken = Read-ProtectedSecret $internalSecretPath
+
+$application = Get-Content -LiteralPath (Join-Path $backendDir 'src\main\resources\application.yml') -Raw
+$userMatch = [regex]::Match($application, 'GENB_DB_USERNAME:([^}]+)')
+$passwordMatch = [regex]::Match($application, 'GENB_DB_PASSWORD:([^}]+)')
+$dbUser = if ($env:GENB_DB_USERNAME) { $env:GENB_DB_USERNAME } elseif ($userMatch.Success) { $userMatch.Groups[1].Value.Trim() } else { [regex]::Match($application, 'username:\s+([^\r\n]+)').Groups[1].Value.Trim() }
+$dbPassword = if ($env:GENB_DB_PASSWORD) { $env:GENB_DB_PASSWORD } elseif ($passwordMatch.Success) { $passwordMatch.Groups[1].Value.Trim() } else { [regex]::Match($application, 'password:\s+([^\r\n]+)').Groups[1].Value.Trim() }
+$env:GENB_DB_URL = 'jdbc:postgresql://127.0.0.1:5432/genb_local?currentSchema=bank_agent_db&sslmode=disable'
+$env:GENB_DB_USERNAME = $dbUser
+$env:GENB_DB_PASSWORD = $dbPassword
 
 Stop-ExpectedPort 8581 'GenBConsoleApplication'
 $env:CONTROL_SYSTEM_INTERNAL_TOKEN = $internalToken
@@ -147,9 +159,12 @@ if (-not $existingAgent -or $existingAgent.code -ne 200) {
     Invoke-GenB Post '/v1/agents' @{
         agentId = $agentId
         name = '核心组件智能体'
+        nameEn = 'Core Component Agent'
         description = '面向客户的真实智能体，通过自然语言验证短期记忆、规划与推理及模型推理能力。'
+        descriptionEn = 'A customer-facing agent that validates short-term memory, planning and reasoning, and model inference through natural-language conversation.'
         version = 'v1.0.0'
         category = '核心组件体验'
+        categoryEn = 'Core Component Experience'
         securityLevel = 'L3'
         status = 'AUTHORIZED'
         runtimeState = 'RUNNING'
@@ -161,6 +176,16 @@ if (-not $existingAgent -or $existingAgent.code -ne 200) {
         workDirectory = $agentDir
         startCommand = 'python -m uvicorn control_system_test_agent.web:app --host 127.0.0.1 --port 18714'
     } | Out-Null
+} else {
+    $agent = $existingAgent.data
+    $agent.name = '核心组件智能体'; $agent.nameEn = 'Core Component Agent'
+    $agent.description = '面向客户的真实智能体，通过自然语言验证短期记忆、规划与推理及模型推理能力。'
+    $agent.descriptionEn = 'A customer-facing agent that validates short-term memory, planning and reasoning, and model inference through natural-language conversation.'
+    $agent.category = '核心组件体验'; $agent.categoryEn = 'Core Component Experience'
+    $agent.status = 'AUTHORIZED'; $agent.runtimeState = 'RUNNING'; $agent.businessStatus = 'RUNNING'
+    $agent.host = '127.0.0.1'; $agent.port = 18714; $agent.workDirectory = $agentDir
+    $agent.startCommand = 'python -m uvicorn control_system_test_agent.web:app --host 127.0.0.1 --port 18714'
+    Invoke-GenB Put "/v1/agents/$agentId" $agent | Out-Null
 }
 
 $runtimeDetail = Invoke-GenB Get '/v1/core-components/INFERENCE_ENGINE'
@@ -264,11 +289,7 @@ Start-Process -FilePath $python -ArgumentList @(
   -RedirectStandardError (Join-Path $logDir 'runtime.stderr.log') | Out-Null
 Wait-Url 'http://127.0.0.1:18704/health/ready'
 
-$application = Get-Content -LiteralPath (Join-Path $backendDir 'src\main\resources\application.yml') -Raw
-$jdbc = [regex]::Match($application, 'url:\s+jdbc:postgresql://([^:/]+):(\d+)/([^?\r\n]+)').Groups
-$dbUser = [regex]::Match($application, 'username:\s+([^\r\n]+)').Groups[1].Value.Trim()
-$dbPassword = [regex]::Match($application, 'password:\s+([^\r\n]+)').Groups[1].Value.Trim()
-$env:PLANNING_REASONING_POSTGRES_DSN = "host=$($jdbc[1].Value) port=$($jdbc[2].Value) dbname=$($jdbc[3].Value) user=$dbUser password=$dbPassword sslmode=disable"
+$env:PLANNING_REASONING_POSTGRES_DSN = "host=127.0.0.1 port=5432 dbname=genb_local user=$dbUser password=$dbPassword sslmode=disable"
 $env:PLANNING_REASONING_AUTH_MODE = 'genb'
 $env:PLANNING_REASONING_GENB_URL = $backendUrl
 $env:PLANNING_REASONING_GENB_INTERNAL_TOKEN = $internalToken
