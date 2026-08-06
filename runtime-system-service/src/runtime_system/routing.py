@@ -26,6 +26,9 @@ class DirectProviderConfig(BaseModel):
     base_url: str = Field(alias="baseUrl", min_length=1)
     secret_ref: str = Field(alias="secretRef", min_length=1)
     timeout_ms: int = Field(alias="timeoutMs", ge=1, le=120000)
+    structured_output_mode: Literal["JSON_SCHEMA", "JSON_OBJECT"] = Field(
+        default="JSON_SCHEMA", alias="structuredOutputMode"
+    )
 
     @field_validator("base_url")
     @classmethod
@@ -94,22 +97,45 @@ class OpenAICompatibleAdapter:
     async def infer(
         self, request: InferenceRequest, model: str
     ) -> ProviderInferenceResult:
+        messages = [
+            message.model_dump(mode="json") for message in request.messages
+        ]
+        if (
+            request.response_format is not None
+            and self._config.structured_output_mode == "JSON_OBJECT"
+        ):
+            schema = json.dumps(
+                request.response_format.json_schema,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            messages.insert(
+                0,
+                {
+                    "role": "system",
+                    "content": (
+                        "Return only one JSON object matching schema "
+                        f"{request.response_format.schema_name}: {schema}"
+                    ),
+                },
+            )
         payload = {
             "model": model,
-            "messages": [
-                message.model_dump(mode="json") for message in request.messages
-            ],
+            "messages": messages,
             "stream": False,
         }
         if request.response_format is not None:
-            payload["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": request.response_format.schema_name,
-                    "strict": True,
-                    "schema": request.response_format.json_schema,
-                },
-            }
+            if self._config.structured_output_mode == "JSON_OBJECT":
+                payload["response_format"] = {"type": "json_object"}
+            else:
+                payload["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": request.response_format.schema_name,
+                        "strict": True,
+                        "schema": request.response_format.json_schema,
+                    },
+                }
         response = await self._post("chat/completions", payload)
         try:
             body = response.json()

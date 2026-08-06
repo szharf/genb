@@ -572,6 +572,94 @@ def test_structured_output_schema_is_sent_to_direct_provider_and_revalidated():
     }
 
 
+def test_json_object_provider_mode_keeps_runtime_schema_validation():
+    upstream_requests: list[httpx.Request] = []
+
+    def handle_upstream(request: httpx.Request) -> httpx.Response:
+        upstream_requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "model": "deepseek-chat",
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": '{"memories":[]}',
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 6, "completion_tokens": 4},
+            },
+        )
+
+    provider = build_provider_from_document(
+        {
+            "schemaVersion": "1.0",
+            "providers": [
+                {
+                    "providerId": "deepseek-direct",
+                    "type": "OPENAI_COMPATIBLE",
+                    "baseUrl": "https://api.deepseek.com/v1",
+                    "secretRef": "env://TEST_DIRECT_PROVIDER_TOKEN",
+                    "timeoutMs": 30000,
+                    "structuredOutputMode": "JSON_OBJECT",
+                }
+            ],
+            "routes": [
+                {
+                    "routeId": "memory-primary",
+                    "modelAlias": "memory-extraction-default",
+                    "capabilities": ["CHAT", "JSON_SCHEMA"],
+                    "providerId": "deepseek-direct",
+                    "model": "deepseek-chat",
+                }
+            ],
+        },
+        environment={"TEST_DIRECT_PROVIDER_TOKEN": "test-token"},
+        transport=httpx.MockTransport(handle_upstream),
+    )
+    app = create_app(
+        identity_verifier=StaticTokenIdentityVerifier(
+            tokens={"caller-token": {INFER_SCOPE}}
+        ),
+        provider=provider,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/runtime-system/inference",
+            headers={
+                "Authorization": "Bearer caller-token",
+                "X-Request-Id": "req-json-object-structured",
+            },
+            json={
+                "capability": "MEMORY_EXTRACTION",
+                "modelAlias": "memory-extraction-default",
+                "messages": [{"role": "user", "content": "记住我喜欢茶"}],
+                "responseFormat": {
+                    "type": "JSON_SCHEMA",
+                    "schemaName": "memory_extraction_v1",
+                    "jsonSchema": {
+                        "type": "object",
+                        "required": ["memories"],
+                        "properties": {"memories": {"type": "array"}},
+                        "additionalProperties": False,
+                    },
+                },
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["data"]["structured"] == {"memories": []}
+    upstream_payload = json.loads(upstream_requests[0].content)
+    assert upstream_payload["response_format"] == {"type": "json_object"}
+    assert upstream_payload["messages"][0]["role"] == "system"
+    assert "memory_extraction_v1" in upstream_payload["messages"][0]["content"]
+    assert '"required":["memories"]' in upstream_payload["messages"][0]["content"]
+
+
 def test_route_referencing_unknown_provider_is_rejected_before_startup():
     document = {
         "schemaVersion": "1.0",

@@ -76,6 +76,7 @@ class LongTermMemoryRepository(Protocol):
         *,
         query: str,
         types: frozenset[str],
+        source_types: frozenset[str],
         limit: int,
     ) -> list[LongTermMemoryRecord]: ...
 
@@ -282,6 +283,7 @@ class InMemoryLongTermMemoryRepository:
             content=normalized,
             content_hash=content_hash,
             confidence=candidate.confidence,
+            source_type="CONVERSATION",
             source_ref=source_ref,
             status="ACTIVE",
             first_seen_at=now,
@@ -298,6 +300,7 @@ class InMemoryLongTermMemoryRepository:
         *,
         query: str,
         types: frozenset[str],
+        source_types: frozenset[str],
         limit: int,
     ) -> list[LongTermMemoryRecord]:
         now = datetime.now(UTC)
@@ -310,6 +313,7 @@ class InMemoryLongTermMemoryRepository:
             and memory.status == "ACTIVE"
             and memory.expires_at > now
             and memory.memory_type in types
+            and memory.source_type in source_types
         ]
 
         def rank(memory: LongTermMemoryRecord):

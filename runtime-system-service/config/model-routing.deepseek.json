@@ -6,7 +6,8 @@
       "type": "OPENAI_COMPATIBLE",
       "baseUrl": "https://api.deepseek.com/v1",
       "secretRef": "env://DEEPSEEK_API_KEY",
-      "timeoutMs": 60000
+      "timeoutMs": 60000,
+      "structuredOutputMode": "JSON_OBJECT"
     }
   ],
   "routes": [
@@ -28,6 +29,13 @@
       "routeId": "planning-authoring-primary",
       "modelAlias": "planning-authoring-default",
       "capabilities": ["CHAT"],
+      "providerId": "deepseek-direct",
+      "model": "deepseek-chat"
+    },
+    {
+      "routeId": "memory-extraction-primary",
+      "modelAlias": "memory-extraction-default",
+      "capabilities": ["CHAT", "JSON_SCHEMA"],
       "providerId": "deepseek-direct",
       "model": "deepseek-chat"
     }

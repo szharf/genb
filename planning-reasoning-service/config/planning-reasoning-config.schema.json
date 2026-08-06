@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "maxClarificationRounds": { "type": "integer", "minimum": 1 },
+    "requireValidationBeforePublish": { "type": "boolean" },
+    "defaultRiskLevel": { "enum": ["LOW", "MEDIUM", "HIGH", "UNKNOWN"] }
+  },
+  "additionalProperties": false
+}

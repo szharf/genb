@@ -1,0 +1,21 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "GenB Planning and Reasoning Service", "version": "1.1.1" },
+  "paths": {
+    "/health/live": { "get": { "operationId": "getPlanningReasoningLiveness", "responses": { "200": { "description": "Live" } } } },
+    "/health/ready": { "get": { "operationId": "getPlanningReasoningReadiness", "responses": { "200": { "description": "Ready" } } } },
+    "/version": { "get": { "operationId": "getPlanningReasoningVersion", "responses": { "200": { "description": "Service version" } } } },
+    "/api/v1/planning-reasoning/requirements:analyze": { "post": { "operationId": "analyzePlanningRequirement", "responses": { "200": { "description": "Analysis result" } } } },
+    "/api/v1/planning-reasoning/requirements:converse": { "post": { "operationId": "conversePlanningRequirement", "responses": { "200": { "description": "Conversation result" } } } },
+    "/api/v1/planning-reasoning/plans": { "post": { "operationId": "createExecutionPlan", "responses": { "201": { "description": "Created execution plan" } } } },
+    "/api/v1/planning-reasoning/plans/{plan_id}": { "get": { "operationId": "getExecutionPlan", "responses": { "200": { "description": "Execution plan" } } } },
+    "/api/v1/planning-reasoning/plans/{plan_id}/steps/{step_id}:transition": { "post": { "operationId": "transitionExecutionPlanStep", "responses": { "200": { "description": "Updated execution plan" } } } },
+    "/api/v1/planning-reasoning/plans/{plan_id}/observations": { "post": { "operationId": "appendExecutionPlanObservation", "responses": { "200": { "description": "Execution plan with appended observation" } } } },
+    "/api/v1/planning-reasoning/plans/{plan_id}:replan": { "post": { "operationId": "replanExecutionPlan", "responses": { "200": { "description": "Replanned execution plan" } } } },
+    "/api/v1/planning-reasoning/plans/{plan_id}:cancel": { "post": { "operationId": "cancelExecutionPlan", "responses": { "200": { "description": "Cancelled execution plan" } } } },
+    "/api/v1/planning-reasoning/skills:generate": { "post": { "operationId": "generatePlanningSkill", "responses": { "200": { "description": "Generated skill" } } } },
+    "/api/v1/planning-reasoning/skills:validate": { "post": { "operationId": "validatePlanningSkill", "responses": { "200": { "description": "Validation result" } } } },
+    "/api/v1/planning-reasoning/skills/{skill_id}:revise": { "post": { "operationId": "revisePlanningSkill", "responses": { "200": { "description": "Revised skill" } } } },
+    "/api/v1/planning-reasoning/skills/{skill_id}/versions/{version}": { "get": { "operationId": "getPlanningSkillVersion", "responses": { "200": { "description": "Skill version" } } } }
+  }
+}

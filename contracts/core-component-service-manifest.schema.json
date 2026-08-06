@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://genb.local/contracts/core-component-service-manifest.schema.json",
+  "title": "GenB Core Component Service Manifest",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "systemCode",
+    "componentCode",
+    "implementationCode",
+    "displayName",
+    "owner",
+    "runtimeType",
+    "interfaceVersion",
+    "baseUrl",
+    "openApiPath",
+    "configSchemaPath",
+    "health",
+    "auth",
+    "isolation"
+  ],
+  "properties": {
+    "manifestVersion": { "const": "1.0" },
+    "systemCode": {
+      "enum": ["CONTROL_SYSTEM", "PERCEPTION_SYSTEM", "INTERACTION_SYSTEM", "RUNTIME_SYSTEM", "OPERATIONS_SYSTEM"]
+    },
+    "componentCode": {
+      "enum": [
+        "PLANNING_REASONING", "SHORT_TERM_MEMORY", "LONG_TERM_MEMORY", "TOOL_REGISTRY", "POLICY_GUARDRAILS",
+        "DATA_CONNECTORS", "CONTEXT_ENCODER", "MULTIMODAL_INTERFACE", "CONVERSATION_MANAGER",
+        "INFERENCE_ENGINE", "ACTION_EXECUTOR", "DISTRIBUTED_TRACING", "SECURITY_FILTER", "FEEDBACK_LOOP"
+      ]
+    },
+    "implementationCode": { "type": "string", "minLength": 1 },
+    "displayName": { "type": "string", "minLength": 1 },
+    "owner": { "type": "string", "minLength": 1 },
+    "runtimeType": { "const": "HTTP" },
+    "interfaceVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "baseUrl": { "type": "string", "minLength": 1 },
+    "openApiPath": { "type": "string", "minLength": 1 },
+    "configSchemaPath": { "type": "string", "minLength": 1 },
+    "health": {
+      "type": "object",
+      "required": ["livePath", "readyPath", "versionPath"],
+      "properties": {
+        "livePath": { "const": "/health/live" },
+        "readyPath": { "const": "/health/ready" },
+        "versionPath": { "const": "/version" }
+      },
+      "additionalProperties": false
+    },
+    "auth": {
+      "type": "object",
+      "required": ["type", "scopes"],
+      "properties": {
+        "type": { "enum": ["BEARER_JWT", "MTLS"] },
+        "scopes": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      }
+    },
+    "isolation": {
+      "type": "object",
+      "required": ["dimensions"],
+      "properties": {
+        "dimensions": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true }
+      }
+    }
+  },
+  "additionalProperties": true
+}

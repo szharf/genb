@@ -280,8 +280,16 @@ class PostgreSQLLongTermMemoryRepository:
 
         return await self._run(operation)
 
-    async def search(self, scope: MemoryScope, *, query: str, types: frozenset[str], limit: int) -> list[LongTermMemoryRecord]:
-        if not types:
+    async def search(
+        self,
+        scope: MemoryScope,
+        *,
+        query: str,
+        types: frozenset[str],
+        source_types: frozenset[str],
+        limit: int,
+    ) -> list[LongTermMemoryRecord]:
+        if not types or not source_types:
             return []
         now = datetime.now(UTC)
         pattern = f"%{query.replace('%', r'\%').replace('_', r'\_')}%" if query else "%"
@@ -293,10 +301,11 @@ class PostgreSQLLongTermMemoryRepository:
                     SELECT * FROM long_term_memories
                     WHERE tenant_id=%s AND user_id=%s AND agent_id=%s
                       AND status='ACTIVE' AND expires_at>%s
-                      AND memory_type = ANY(%s) AND content ILIKE %s ESCAPE '\\'
+                      AND memory_type = ANY(%s) AND source_type = ANY(%s)
+                      AND content ILIKE %s ESCAPE '\\'
                     ORDER BY confidence DESC, last_confirmed_at DESC LIMIT %s
                     """,
-                    (*scope, now, list(types), pattern, limit),
+                    (*scope, now, list(types), list(source_types), pattern, limit),
                 )
                 rows = cursor.fetchall()
                 if rows:
@@ -391,7 +400,8 @@ def _memory(row: dict[str, Any]) -> LongTermMemoryRecord:
     return LongTermMemoryRecord(
         memory_id=row["id"], scope=(row["tenant_id"], row["user_id"], row["agent_id"]),
         memory_type=row["memory_type"], content=row["content"], content_hash=row["content_hash"],
-        confidence=float(row["confidence"]), source_ref=row["source_ref"], status=row["status"],
+        confidence=float(row["confidence"]), source_type=row["source_type"],
+        source_ref=row["source_ref"], status=row["status"],
         first_seen_at=row["first_seen_at"], last_confirmed_at=row["last_confirmed_at"],
         last_accessed_at=row["last_accessed_at"], expires_at=row["expires_at"],
     )

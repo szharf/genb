@@ -25,21 +25,26 @@ class GenBClient:
     async def issue_component_session(
         self,
         *,
-        user_token: str,
+        user_token: str | None = None,
+        session_grant: str | None = None,
         service_credential: str,
         agent_id: str,
         session_id: str,
         requested_components: Sequence[str],
     ) -> ActorSession:
+        if bool(user_token) == bool(session_grant):
+            raise ValueError("exactly one user_token or session_grant is required")
+        identity_header = (
+            {"Authorization": f"Bearer {user_token}"}
+            if user_token
+            else {"X-Agent-Session-Grant": session_grant}
+        )
         response = await _post(
             self._client,
             f"{self._base_url}/v1/client/agents/{quote(agent_id, safe='')}/component-session",
             operation="issue component session",
             request_id=None,
-            headers={
-                "Authorization": f"Bearer {user_token}",
-                "X-Agent-Credential": service_credential,
-            },
+            headers={"X-Agent-Credential": service_credential, **identity_header},
             json={
                 "sessionId": session_id,
                 "requestedComponents": list(requested_components),
@@ -175,21 +180,34 @@ class ControlSystemClient:
         occurred_at: str,
         request_id: str,
         idempotency_key: str,
+        base_url: str | None = None,
+        conversation_id: str | None = None,
     ) -> str:
         headers = _identity_headers(service_credential, actor_token, request_id)
         headers["Idempotency-Key"] = idempotency_key
+        standalone = base_url is not None
+        target = (base_url or self._base_url).rstrip("/")
+        body = {
+            "turnId": turn_id,
+            "userMessage": user_message,
+            "assistantMessage": assistant_message,
+            "occurredAt": occurred_at,
+        }
+        if standalone:
+            if not conversation_id:
+                raise ValueError("standalone long-term extraction requires conversation_id")
+            body["conversationId"] = conversation_id
         response = await _post(
             self._client,
-            f"{self._base_url}/api/v1/control-system/long-term-memory/extractions",
+            (
+                f"{target}/api/v1/long-term-memory/extractions"
+                if standalone
+                else f"{target}/api/v1/control-system/long-term-memory/extractions"
+            ),
             operation="request long-term extraction",
             request_id=request_id,
             headers=headers,
-            json={
-                "turnId": turn_id,
-                "userMessage": user_message,
-                "assistantMessage": assistant_message,
-                "occurredAt": occurred_at,
-            },
+            json=body,
         )
         data = _required_object(_object(response, "request long-term extraction", request_id), "data")
         return _required_string(data, "extractionId")
@@ -201,10 +219,17 @@ class ControlSystemClient:
         actor_token: str,
         extraction_id: str,
         request_id: str,
+        base_url: str | None = None,
     ) -> ExtractionStatus:
+        standalone = base_url is not None
+        target = (base_url or self._base_url).rstrip("/")
         response = await _get(
             self._client,
-            f"{self._base_url}/api/v1/control-system/long-term-memory/extractions/{quote(extraction_id, safe='')}",
+            (
+                f"{target}/api/v1/long-term-memory/extractions/{quote(extraction_id, safe='')}"
+                if standalone
+                else f"{target}/api/v1/control-system/long-term-memory/extractions/{quote(extraction_id, safe='')}"
+            ),
             operation="get long-term extraction",
             request_id=request_id,
             headers=_identity_headers(service_credential, actor_token, request_id),
@@ -229,14 +254,25 @@ class ControlSystemClient:
         query: str,
         request_id: str,
         top_k: int = 10,
+        source_types: Sequence[str] | None = None,
+        base_url: str | None = None,
     ) -> tuple[LongTermMemoryItem, ...]:
+        body: dict[str, object] = {"query": query, "topK": top_k}
+        if source_types is not None:
+            body["sourceTypes"] = list(source_types)
+        standalone = base_url is not None
+        target = (base_url or self._base_url).rstrip("/")
         response = await _post(
             self._client,
-            f"{self._base_url}/api/v1/control-system/long-term-memory/search",
+            (
+                f"{target}/api/v1/long-term-memory/memories:search"
+                if standalone
+                else f"{target}/api/v1/control-system/long-term-memory/search"
+            ),
             operation="search long-term memory",
             request_id=request_id,
             headers=_identity_headers(service_credential, actor_token, request_id),
-            json={"query": query, "topK": top_k},
+            json=body,
         )
         data = _required_object(_object(response, "search long-term memory", request_id), "data")
         raw_items = data.get("items")
@@ -253,6 +289,8 @@ class ControlSystemClient:
                 memory_type=_required_string(item, "type"),
                 content=_required_string(item, "content"),
                 confidence=float(confidence),
+                source_type=_required_string(item, "sourceType"),
+                source_ref=_required_string(item, "sourceRef"),
             ))
         return tuple(items)
 
@@ -264,15 +302,29 @@ class ControlSystemClient:
         memory_id: str,
         reason: str,
         request_id: str,
+        base_url: str | None = None,
     ) -> bool:
-        response = await _post(
-            self._client,
-            f"{self._base_url}/api/v1/control-system/long-term-memory/memories/{quote(memory_id, safe='')}:delete",
-            operation="delete long-term memory",
-            request_id=request_id,
-            headers=_identity_headers(service_credential, actor_token, request_id),
-            json={"reason": reason},
+        standalone = base_url is not None
+        target = (base_url or self._base_url).rstrip("/")
+        url = (
+            f"{target}/api/v1/long-term-memory/memories/{quote(memory_id, safe='')}"
+            if standalone
+            else f"{target}/api/v1/control-system/long-term-memory/memories/{quote(memory_id, safe='')}:delete"
         )
+        try:
+            response = await self._client.request(
+                "DELETE" if standalone else "POST",
+                url,
+                headers=_identity_headers(service_credential, actor_token, request_id),
+                json={"reason": reason},
+            )
+        except httpx.HTTPError as exc:
+            raise RemoteCallError(
+                operation="delete long-term memory",
+                status_code=None,
+                request_id=request_id,
+            ) from exc
+        _raise_for_status(response, "delete long-term memory", request_id)
         data = _required_object(_object(response, "delete long-term memory", request_id), "data")
         deleted = data.get("deleted")
         if not isinstance(deleted, bool):
@@ -380,6 +432,7 @@ class PlanningReasoningClient:
         normalized = operation.strip().upper()
         paths = {
             "ANALYZE": "/api/v1/planning-reasoning/requirements:analyze",
+            "CONVERSE": "/api/v1/planning-reasoning/requirements:converse",
             "GENERATE": "/api/v1/planning-reasoning/skills:generate",
             "VALIDATE": "/api/v1/planning-reasoning/skills:validate",
         }

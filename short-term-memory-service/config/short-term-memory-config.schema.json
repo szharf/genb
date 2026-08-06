@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "defaultTtlSeconds": { "type": "integer", "minimum": 60 },
+    "maxContextTurns": { "type": "integer", "minimum": 1 },
+    "maxStoredMessages": { "type": "integer", "minimum": 2, "multipleOf": 2 },
+    "maxContextCharacters": { "type": "integer", "minimum": 256 }
+  },
+  "additionalProperties": false
+}

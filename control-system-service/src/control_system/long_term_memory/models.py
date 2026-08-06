@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .config import LongTermMemoryRuntimeConfig
 
 MemoryScope = tuple[str, str, str]
+MEMORY_SOURCE_TYPES = frozenset({"CONVERSATION", "KNOWLEDGE_BASE"})
 
 
 class ExtractionRequest(BaseModel):
@@ -21,6 +22,9 @@ class SearchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
     query: str = Field(default="", max_length=16000)
     types: list[Literal["USER_PREFERENCE", "STABLE_FACT", "USER_CONSTRAINT"]] | None = None
+    source_types: list[Literal["CONVERSATION", "KNOWLEDGE_BASE"]] | None = Field(
+        default=None, alias="sourceTypes", min_length=1
+    )
     top_k: int | None = Field(default=None, alias="topK", ge=1, le=100)
 
 
@@ -37,6 +41,7 @@ class LongTermMemoryRecord:
     content: str
     content_hash: str
     confidence: float
+    source_type: str
     source_ref: str
     status: str
     first_seen_at: datetime

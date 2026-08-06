@@ -8,6 +8,8 @@ from uuid import uuid4
 from .models import (
     ClarificationQuestion,
     RequirementAnalysis,
+    RequirementConversationResult,
+    RequirementDraft,
     RequirementRequest,
     SkillArtifact,
     SkillGenerateRequest,
@@ -15,7 +17,8 @@ from .models import (
     SkillValidation,
     ValidationIssue,
 )
-from .repository import SkillRepository
+from .repository import RequirementDraftRepository, SkillRepository
+from .knowledge import PlanningKnowledgeProvider
 
 
 QUESTION_TEXT = {
@@ -23,6 +26,140 @@ QUESTION_TEXT = {
     "expectedOutputs": "Skill完成后必须交付哪些结果，采用什么格式？",
     "constraints": "执行过程中有哪些业务规则、禁止事项或审批约束？",
 }
+
+
+class RequirementConversationAnalyst(Protocol):
+    def analyze(
+        self,
+        *,
+        previous: RequirementDraft | None,
+        message: str,
+        references: list[dict[str, str | bool]],
+        service_token: str,
+        request_id: str,
+    ) -> RequirementConversationResult: ...
+
+
+class RequirementConversationService:
+    def __init__(
+        self,
+        *,
+        repository: RequirementDraftRepository,
+        analyst: RequirementConversationAnalyst,
+        knowledge: PlanningKnowledgeProvider | None = None,
+    ) -> None:
+        self._repository = repository
+        self._analyst = analyst
+        self._knowledge = knowledge
+
+    def converse(
+        self,
+        *,
+        task_id: str,
+        session_id: str,
+        message: str,
+        tenant_id: str,
+        agent_id: str,
+        user_id: str,
+        references: list[dict[str, str | bool]] | None = None,
+        service_token: str = "",
+        request_id: str = "planning-requirements",
+    ) -> RequirementConversationResult:
+        previous = self._repository.get_draft(
+            tenant_id=tenant_id,
+            agent_id=agent_id,
+            user_id=user_id,
+            task_id=task_id,
+        )
+        approved_references = references
+        if approved_references is None and self._knowledge is not None:
+            approved_references = self._knowledge.search(draft=previous, message=message)
+        result = self._analyst.analyze(
+            previous=previous,
+            message=message,
+            references=approved_references or [],
+            service_token=service_token,
+            request_id=request_id,
+        )
+        result = self._apply_guards(previous, result, approved_references or [])
+        self._repository.save_draft(
+            result.draft,
+            tenant_id=tenant_id,
+            agent_id=agent_id,
+            user_id=user_id,
+            task_id=task_id,
+            session_id=session_id,
+        )
+        return result
+
+    @staticmethod
+    def _apply_guards(
+        previous: RequirementDraft | None,
+        result: RequirementConversationResult,
+        references: list[dict[str, str | bool]],
+    ) -> RequirementConversationResult:
+        draft = result.draft.model_copy(deep=True)
+        previous_ids = set(previous.asked_question_ids if previous else ())
+        previous_questions = {
+            question.strip() for question in (previous.asked_questions if previous else ())
+        }
+        questions = [
+            question
+            for question in result.questions
+            if (not question.question_id or question.question_id not in previous_ids)
+            and question.question.strip() not in previous_questions
+        ]
+        allowed_tools = {
+            (str(reference.get("protocol", "")), str(reference.get("server", "")), str(reference.get("tool", "")))
+            for reference in references
+            if reference.get("authorized") is True
+        }
+        unauthorized = [
+            tool for tool in draft.tool_references
+            if (tool.protocol, tool.server, tool.tool) not in allowed_tools
+        ]
+        if unauthorized:
+            draft.tool_references = [
+                tool for tool in draft.tool_references
+                if (tool.protocol, tool.server, tool.tool) in allowed_tools
+            ]
+            if "q-authorized-tool" not in previous_ids:
+                questions.append(
+                    ClarificationQuestion(
+                        questionId="q-authorized-tool",
+                        field="toolReferences",
+                        topic="TOOL",
+                        question="这个Skill需要调用工具。请从当前智能体已经授权的工具中选择，或先联系管理员完成工具注册和授权。",
+                        reason="未注册或未授权的工具不能写入可执行Skill。",
+                        inputHint="可以提供GenB中已授权的HTTP API、MCP Server和tool名称。",
+                    )
+                )
+            result = result.model_copy(update={"status": "CLARIFYING", "complexity": "COMPLEX"})
+        if result.status == "CLARIFYING" and not questions:
+            # The model may correctly keep an unanswered question pending. Re-presenting
+            # that pending item is preferable to turning a valid conversation into a 502.
+            questions = list(result.questions[:3])
+        questions = questions[:3]
+        draft.asked_question_ids = list(dict.fromkeys([
+            *(previous.asked_question_ids if previous else ()),
+            *(question.question_id for question in questions if question.question_id),
+        ]))
+        draft.asked_questions = list(dict.fromkeys([
+            *(previous.asked_questions if previous else ()),
+            *(question.question.strip() for question in questions),
+        ]))
+        if result.status == "CLARIFYING" and not questions:
+            raise ValueError("CLARIFICATION_QUESTION_MISSING")
+        if result.status == "READY" and (
+            not draft.name
+            or len(draft.description) < 10
+            or not draft.goal
+            or not draft.expected_inputs
+            or not draft.expected_outputs
+            or not draft.constraints
+        ):
+            raise ValueError("MODEL_MARKED_INCOMPLETE_REQUIREMENTS_READY")
+        return result.model_copy(update={"draft": draft, "questions": questions, "references": references})
 
 
 class SkillDraftWriter(Protocol):
@@ -324,11 +461,12 @@ def _skill_name(display_name: str) -> str:
     aliases = {
         "授信材料检查": "credit-material-check",
         "对公授信审查": "review-corporate-credit",
+        "银行对公授信材料检查Skill": "corporate-credit-material-check",
     }
     if display_name in aliases:
         return aliases[display_name]
     normalized = re.sub(r"[^a-z0-9]+", "-", display_name.lower()).strip("-")
-    if normalized:
+    if normalized and normalized not in {"skill", "agent", "workflow"}:
         return normalized[:63].rstrip("-")
     digest = hashlib.sha256(display_name.encode("utf-8")).hexdigest()[:10]
     return f"generated-skill-{digest}"

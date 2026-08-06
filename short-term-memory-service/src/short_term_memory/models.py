@@ -113,6 +113,7 @@ class ContextPrepareView(BaseModel):
     session_id: Identifier = Field(alias="sessionId")
     messages: list[ContextMessage]
     workbench: WorkbenchSnapshot | None
+    trimmed_message_count: int = Field(alias="trimmedMessageCount", ge=0)
 
 
 class ContextPrepareResponse(BaseModel):

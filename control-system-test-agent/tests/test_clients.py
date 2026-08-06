@@ -63,6 +63,38 @@ async def test_genb_client_exchanges_user_and_agent_credentials_for_actor_token(
 
 
 @pytest.mark.asyncio
+async def test_genb_client_uses_server_side_agent_grant_without_a_bearer_token() -> None:
+    seen: dict[str, str | None] = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen["authorization"] = request.headers.get("Authorization")
+        seen["session_grant"] = request.headers.get("X-Agent-Session-Grant")
+        return httpx.Response(
+            200,
+            json={"data": {
+                "componentSessionId": "component-session-a",
+                "actorToken": "actor-token-a",
+                "expiresAt": "2026-08-03T12:00:00Z",
+                "components": [],
+            }},
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        await GenBClient(http, "http://genb.local/api").issue_component_session(
+            session_grant="server-only-session-grant",
+            service_credential="service-secret-a",
+            agent_id="core-component-demo-agent",
+            session_id="chat-session-a",
+            requested_components=("SHORT_TERM_MEMORY",),
+        )
+
+    assert seen == {
+        "authorization": None,
+        "session_grant": "server-only-session-grant",
+    }
+
+
+@pytest.mark.asyncio
 async def test_control_client_sends_both_credentials_and_request_ids() -> None:
     requests: list[httpx.Request] = []
 
@@ -173,10 +205,11 @@ async def test_long_term_client_supports_extract_status_search_and_soft_delete()
                 "extractionId": "ext-a", "status": "SUCCEEDED",
                 "writtenCount": 1, "rejectedCount": 0,
             }})
-        if path.endswith("/search"):
+        if path.endswith("/memories:search"):
             return httpx.Response(200, json={"data": {"items": [{
                 "memoryId": "mem-a", "type": "USER_PREFERENCE",
                 "content": "prefers tea", "confidence": 0.95,
+                "sourceType": "CONVERSATION", "sourceRef": "turn-a",
             }]}})
         return httpx.Response(200, json={"data": {"deleted": True}})
 
@@ -184,25 +217,35 @@ async def test_long_term_client_supports_extract_status_search_and_soft_delete()
         client = ControlSystemClient(http, "http://control.local")
         extraction_id = await client.request_long_term_extraction(
             service_credential="service-a", actor_token="actor-a", turn_id="turn-a",
+            conversation_id="conversation-a", base_url="http://memory.local",
             user_message="I prefer tea", assistant_message="noted",
             occurred_at="2026-07-24T00:00:00Z", request_id="req-a",
             idempotency_key="idem-long-term-a",
         )
         status = await client.get_long_term_extraction(
             service_credential="service-a", actor_token="actor-a",
+            base_url="http://memory.local",
             extraction_id=extraction_id, request_id="req-b",
         )
         items = await client.search_long_term_memory(
             service_credential="service-a", actor_token="actor-a",
-            query="tea", request_id="req-c",
+            base_url="http://memory.local",
+            query="tea", request_id="req-c", source_types=("CONVERSATION",),
         )
         deleted = await client.delete_long_term_memory(
             service_credential="service-a", actor_token="actor-a", memory_id="mem-a",
+            base_url="http://memory.local",
             reason="acceptance", request_id="req-d",
         )
 
     assert status.status == "SUCCEEDED" and status.written_count == 1
     assert items[0].memory_type == "USER_PREFERENCE" and deleted is True
+    assert items[0].source_type == "CONVERSATION" and items[0].source_ref == "turn-a"
+    assert json.loads(requests[2].content)["sourceTypes"] == ["CONVERSATION"]
+    assert json.loads(requests[0].content)["conversationId"] == "conversation-a"
+    assert requests[0].url.path == "/api/v1/long-term-memory/extractions"
+    assert requests[2].url.path == "/api/v1/long-term-memory/memories:search"
+    assert requests[3].method == "DELETE"
     assert requests[0].headers["Idempotency-Key"] == "idem-long-term-a"
     assert all(request.headers["X-GenB-Actor-Token"] == "actor-a" for request in requests)
 

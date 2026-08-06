@@ -26,14 +26,17 @@ from .identity import (
 
 app = FastAPI(
     title="GenB Short-term Memory Service",
-    version="1.0.0",
+    version="1.1.0",
     openapi_version="3.1.0",
 )
 
 def configured_memory() -> ShortTermMemoryService:
     store_type = os.getenv("SHORT_TERM_MEMORY_STORE", "in_memory").lower()
     if store_type == "in_memory":
-        return ShortTermMemoryService(InMemoryTaskStore())
+        return ShortTermMemoryService(
+            InMemoryTaskStore(),
+            max_stored_messages=int(os.getenv("SHORT_TERM_MEMORY_MAX_STORED_MESSAGES", "200")),
+        )
     if store_type != "redis":
         raise RuntimeError("SHORT_TERM_MEMORY_STORE must be in_memory or redis")
     client = Redis(
@@ -45,7 +48,10 @@ def configured_memory() -> ShortTermMemoryService:
         socket_connect_timeout=2,
         socket_timeout=2,
     )
-    return ShortTermMemoryService(RedisTaskStore(client, os.getenv("SHORT_TERM_MEMORY_REDIS_PREFIX", "genb:short-term-memory:v1")))
+    return ShortTermMemoryService(
+        RedisTaskStore(client, os.getenv("SHORT_TERM_MEMORY_REDIS_PREFIX", "genb:short-term-memory:v1")),
+        max_stored_messages=int(os.getenv("SHORT_TERM_MEMORY_MAX_STORED_MESSAGES", "200")),
+    )
 
 
 memory = configured_memory()
@@ -140,6 +146,16 @@ def ready() -> dict[str, str]:
     if not ready_status:
         raise HTTPException(status_code=503, detail="短期记忆存储不可用")
     return {"status": "UP", "store": memory.store.name}
+
+
+@app.get("/version", tags=["health"], operation_id="getShortTermMemoryVersion")
+def version() -> dict[str, str]:
+    return {
+        "componentCode": "SHORT_TERM_MEMORY",
+        "implementationCode": "short-term-memory-service-v1",
+        "interfaceVersion": "1.1.0",
+        "serviceVersion": "0.1.0",
+    }
 
 
 @app.put(

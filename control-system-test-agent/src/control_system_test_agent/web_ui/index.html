@@ -2,54 +2,113 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>核心组件智能体 · Alaya.To</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%2301afef%22/><text x=%2232%22 y=%2243%22 text-anchor=%22middle%22 font-size=%2236%22 fill=%22white%22>A</text></svg>" />
-  <link rel="stylesheet" href="./assets/styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#073c43" />
+  <title>GenB 智能体能力体验</title>
+  <link rel="stylesheet" href="./assets/styles.css?v=20260804-1" />
 </head>
 <body>
-  <div class="ambient ambient-a"></div>
-  <div class="ambient ambient-b"></div>
   <main class="app-shell">
-    <aside class="rail">
-      <div class="brand"><span class="brand-mark">A</span><div><strong>Alaya.To</strong><small>CORE LAB</small></div></div>
-      <div class="agent-seal"><span class="pulse"></span><strong>核心组件智能体</strong><small>已连接 GenB 能力网络</small></div>
-      <nav class="capabilities" aria-label="当前能力">
-        <span><i>01</i>短期记忆</span>
-        <span><i>02</i>规划与推理</span>
-        <span><i>03</i>模型推理</span>
+    <aside class="experience-nav">
+      <a class="brand" href="/genb/dashboard" aria-label="返回GenB">
+        <span class="brand-mark">A</span>
+        <span><strong>Alaya.To</strong><small>GENB · AGENT EXPERIENCE</small></span>
+      </a>
+
+      <div class="nav-intro">
+        <span class="eyebrow">和智能体聊一聊</span>
+        <h1>能力体验</h1>
+        <p>不用填写技术参数。像平时聊天一样，亲自确认它能做到什么。</p>
+      </div>
+
+      <nav class="scenario-nav" aria-label="选择体验场景">
+        <button class="scenario-button active" type="button" data-scenario="short" aria-selected="true">
+          <span class="scenario-number">01</span>
+          <span><strong>记住本次交流</strong><small>看看它能否记住刚说过的话</small></span>
+        </button>
+        <button class="scenario-button" type="button" data-scenario="long" aria-selected="false">
+          <span class="scenario-number">02</span>
+          <span><strong>跨会话记住我</strong><small>换个会话后还能想起你的偏好</small></span>
+        </button>
+        <button class="scenario-button" type="button" data-scenario="skill" aria-selected="false">
+          <span class="scenario-number">03</span>
+          <span><strong>一步步生成Skill</strong><small>边聊边补充，准备好后再生成</small></span>
+        </button>
       </nav>
-      <button id="newTask" class="new-task" type="button">开始新任务</button>
+
+      <div class="nav-foot">
+        <span><i></i> 已通过统一登录</span>
+        <small>每个场景的对话互不混用</small>
+      </div>
     </aside>
 
-    <section class="workspace">
+    <section class="experience-main">
       <header class="topbar">
-        <div><span class="kicker">CONTROL SYSTEM / LIVE AGENT</span><h1>把目标说清楚，剩下的交给我。</h1></div>
-        <div class="status"><span></span>服务在线</div>
+        <div>
+          <span class="eyebrow">GENB · GUIDED CONVERSATION</span>
+          <h2 id="scenarioTitle">记住本次交流</h2>
+          <p id="scenarioSubtitle">告诉智能体一件事，再问问它是否还记得。</p>
+        </div>
+        <div class="topbar-actions">
+          <span class="online-status" id="liveStatus"><i></i> 服务在线</span>
+          <button class="quiet-button" id="restartButton" type="button">开始新测试</button>
+          <form action="./auth/logout" method="post"><button class="quiet-button" id="logoutButton" type="submit">退出</button></form>
+        </div>
       </header>
 
-      <section id="conversation" class="conversation" aria-live="polite">
-        <article class="message assistant-message intro-message">
-          <div class="avatar">AI</div>
-          <div class="bubble">
-            <p>你好，我可以记住当前任务上下文，也可以通过对话帮你澄清需求并生成 Skill。</p>
-            <div class="suggestions">
-              <button type="button" data-prompt="我正在为A公司办理授信，请记住我偏好低风险方案。">测试短期记忆</button>
-              <button type="button" data-prompt="帮我设计一个银行对公授信材料检查Skill。">生成一个 Skill</button>
-            </div>
+      <div class="conversation-layout">
+        <section class="chat-card" aria-label="智能体对话">
+          <div class="chat-context">
+            <div class="agent-avatar">AI</div>
+            <div><strong id="chatHeading">本次交流记忆体验</strong><span id="chatHint">预计需要2轮对话</span></div>
+            <span class="phase-badge" id="phaseBadge">准备开始</span>
           </div>
-        </article>
-      </section>
 
-      <section class="composer-wrap">
-        <form id="chatForm" class="composer">
-          <textarea id="messageInput" rows="1" maxlength="16000" placeholder="描述你的目标，或继续刚才的任务……" required></textarea>
-          <button id="sendButton" type="submit" aria-label="发送消息">发送</button>
-        </form>
-        <p class="notice">回答由已绑定的核心组件生成。重要业务决策仍需人工复核。</p>
-      </section>
+          <section class="conversation-history" id="conversationHistory" aria-label="本场景的对话">
+            <div class="history-heading">
+              <span><strong>本场景的对话</strong><small>旧对话会保留，可以随时切回</small></span>
+              <button id="newConversationButton" type="button">＋ 新建对话</button>
+            </div>
+            <div class="conversation-list" id="conversationList" aria-label="对话历史"></div>
+          </section>
+
+          <div class="conversation-thread" id="conversationThread" aria-live="polite"></div>
+          <div class="suggestion-bar" id="suggestionBar" aria-label="建议回复"></div>
+
+          <form class="message-composer" id="messageComposer">
+            <label class="sr-only" for="messageInput">输入消息</label>
+            <textarea id="messageInput" rows="1" maxlength="4000" placeholder="在这里回复智能体……" required></textarea>
+            <button class="send-button" type="submit"><span>发送</span><b>↗</b></button>
+          </form>
+          <p class="composer-tip">Enter发送 · Shift + Enter换行</p>
+        </section>
+
+        <aside class="guide-rail">
+          <section class="guide-card goal-card">
+            <span class="eyebrow">这次要验证什么</span>
+            <h3 id="scenarioGoal"></h3>
+            <p id="scenarioGoalText"></p>
+          </section>
+
+          <section class="guide-card">
+            <span class="eyebrow">体验进度</span>
+            <ol class="stage-list" id="stageList"></ol>
+          </section>
+
+          <section class="guide-card success-card">
+            <span class="eyebrow">怎样算成功</span>
+            <p id="successRule"></p>
+          </section>
+
+          <details class="evidence-card" id="technicalEvidence">
+            <summary>查看技术验证详情</summary>
+            <p>这里提供给开发和验收人员复核，普通体验不需要阅读。</p>
+            <pre id="evidencePayload">尚未产生调用记录</pre>
+          </details>
+        </aside>
+      </div>
     </section>
   </main>
-  <script src="./assets/app.js" defer></script>
+  <script src="./assets/app.js?v=20260804-3" defer></script>
 </body>
 </html>

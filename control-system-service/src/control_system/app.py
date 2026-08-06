@@ -22,17 +22,9 @@ from .component_config import (
 from .identity import IdentityVerifier, InvocationIdentity
 from .long_term_memory.config import (
     LongTermMemoryConfigProvider,
-    LongTermMemoryRuntimeConfig,
-    StaticLongTermMemoryConfigProvider,
 )
-from .long_term_memory.extraction import MemoryExtractionModel, UnavailableExtractionModel
-from .long_term_memory.models import DeleteMemoryRequest, ExtractionRequest, SearchRequest
-from .long_term_memory.repository import (
-    InMemoryLongTermMemoryRepository,
-    LongTermMemoryRepository,
-)
-from .long_term_memory.service import LongTermMemoryService
-from .long_term_memory.worker import ExtractionWorkerRunner
+from .long_term_memory.extraction import MemoryExtractionModel
+from .long_term_memory.repository import LongTermMemoryRepository
 from .protection import HttpProtection, HttpProtectionSettings
 from .short_term_memory.models import (
     CommitTurnRequest,
@@ -45,7 +37,6 @@ from .summary import SummaryGenerator
 from .telemetry import MetricsRegistry
 
 COMPONENT_CODE = "SHORT_TERM_MEMORY"
-LONG_TERM_COMPONENT_CODE = "LONG_TERM_MEMORY"
 IMPLEMENTATION_CODE = "control-memory-v1"
 INTERFACE_VERSION = "1.0.0"
 EVENT_LOGGER = logging.getLogger("control_system.events")
@@ -96,40 +87,6 @@ def create_app(
     http_protection = HttpProtection(
         protection_settings or HttpProtectionSettings(), metric_registry
     )
-    active_long_term_repository = (
-        long_term_repository or InMemoryLongTermMemoryRepository()
-    )
-    long_term = LongTermMemoryService(
-        active_long_term_repository,
-        config_provider=long_term_config_provider
-        or StaticLongTermMemoryConfigProvider(
-            LongTermMemoryRuntimeConfig(
-                enabled_types=frozenset(
-                    {"USER_PREFERENCE", "STABLE_FACT", "USER_CONSTRAINT"}
-                ),
-                auto_extraction_enabled=False,
-                confidence_threshold=0.8,
-                retention_days=180,
-                top_k=5,
-                max_top_k=20,
-                model_alias="memory-extraction-default",
-            )
-        ),
-        extraction_model=extraction_model or UnavailableExtractionModel(),
-        metrics=metric_registry,
-    )
-    app.state.long_term_memory = long_term
-    if run_extraction_worker:
-        extraction_runner = ExtractionWorkerRunner(
-            long_term.worker,
-            active_long_term_repository,
-            poll_seconds=extraction_worker_poll_seconds,
-            metrics=metric_registry,
-        )
-        app.state.extraction_worker = extraction_runner
-        app.router.add_event_handler("startup", extraction_runner.start)
-        app.router.add_event_handler("shutdown", extraction_runner.stop)
-
     @app.middleware("http")
     async def enforce_http_protection(request: Request, call_next):
         return await http_protection.dispatch(request, call_next)
@@ -360,127 +317,6 @@ def create_app(
             "meta": _meta(identity.request_id),
         }
 
-    @app.post(
-        "/api/v1/control-system/long-term-memory/extractions",
-        operation_id="requestLongTermExtraction",
-        status_code=status.HTTP_202_ACCEPTED,
-    )
-    async def request_long_term_extraction(
-        request: ExtractionRequest,
-        background_tasks: BackgroundTasks,
-        idempotency_key: str = Header(
-            alias="Idempotency-Key", min_length=16, max_length=128
-        ),
-        identity: InvocationIdentity = Depends(
-            require_identity(
-                "component:long-term-memory:write", LONG_TERM_COMPONENT_CODE
-            )
-        ),
-    ) -> dict[str, object]:
-        job, duplicate = await long_term.request_extraction(
-            identity, request, idempotency_key
-        )
-        if process_extractions_inline and not duplicate:
-            background_tasks.add_task(
-                long_term.worker.process,
-                job.extraction_id,
-                identity.request_id,
-                identity.trace_parent,
-            )
-        return {
-            "data": {
-                "extractionId": job.extraction_id,
-                "status": job.status,
-                "duplicate": duplicate,
-            },
-            "meta": _component_meta(identity.request_id, LONG_TERM_COMPONENT_CODE),
-        }
-
-    @app.get(
-        "/api/v1/control-system/long-term-memory/extractions/{extractionId}",
-        operation_id="getLongTermExtraction",
-    )
-    async def get_long_term_extraction(
-        extraction_id: str = Path(alias="extractionId", min_length=1, max_length=128),
-        identity: InvocationIdentity = Depends(
-            require_identity(
-                "component:long-term-memory:write", LONG_TERM_COMPONENT_CODE
-            )
-        ),
-    ) -> dict[str, object]:
-        job = await long_term.get_extraction(identity, extraction_id)
-        return {
-            "data": {
-                "extractionId": job.extraction_id,
-                "status": job.status,
-                "attemptCount": job.attempt_count,
-                "writtenCount": job.written_count,
-                "rejectedCount": job.rejected_count,
-                "model": job.model,
-                "errorCode": job.error_code,
-                "createdAt": job.created_at.isoformat(),
-                "updatedAt": job.updated_at.isoformat(),
-            },
-            "meta": _component_meta(identity.request_id, LONG_TERM_COMPONENT_CODE),
-        }
-
-    @app.post(
-        "/api/v1/control-system/long-term-memory/search",
-        operation_id="searchLongTermMemory",
-    )
-    async def search_long_term_memory(
-        request: SearchRequest,
-        identity: InvocationIdentity = Depends(
-            require_identity(
-                "component:long-term-memory:read", LONG_TERM_COMPONENT_CODE
-            )
-        ),
-    ) -> dict[str, object]:
-        items, applied_top_k = await long_term.search(
-            identity,
-            query=request.query,
-            requested_types=request.types,
-            requested_top_k=request.top_k,
-        )
-        return {
-            "data": {
-                "items": [
-                    {
-                        "memoryId": item.memory_id,
-                        "type": item.memory_type,
-                        "content": item.content,
-                        "confidence": item.confidence,
-                        "lastConfirmedAt": item.last_confirmed_at.isoformat(),
-                        "expiresAt": item.expires_at.isoformat(),
-                    }
-                    for item in items
-                ],
-                "appliedTopK": applied_top_k,
-            },
-            "meta": _component_meta(identity.request_id, LONG_TERM_COMPONENT_CODE),
-        }
-
-    @app.post(
-        "/api/v1/control-system/long-term-memory/memories/{memoryId}:delete",
-        operation_id="deleteLongTermMemory",
-    )
-    async def delete_long_term_memory(
-        request: DeleteMemoryRequest,
-        memory_id: str = Path(alias="memoryId", min_length=1, max_length=128),
-        identity: InvocationIdentity = Depends(
-            require_identity(
-                "component:long-term-memory:delete", LONG_TERM_COMPONENT_CODE
-            )
-        ),
-    ) -> dict[str, object]:
-        deleted = await long_term.delete_memory(
-            identity, memory_id, reason=request.reason
-        )
-        return {
-            "data": {"deleted": deleted},
-            "meta": _component_meta(identity.request_id, LONG_TERM_COMPONENT_CODE),
-        }
-
     @app.get("/health/live", operation_id="controlSystemLive")
     async def live() -> dict[str, str]:
         return {"status": "UP"}
@@ -488,23 +324,21 @@ def create_app(
     @app.get("/health/ready", operation_id="controlSystemReady")
     async def ready() -> JSONResponse:
         store_ready = await session_store.health()
-        long_term_store_ready = await active_long_term_repository.health()
         degraded_dependencies: list[str] = []
         if summary_generator is not None:
             health = getattr(summary_generator, "health", None)
             if health is not None and not await health():
                 degraded_dependencies.append("runtime-inference")
         content: dict[str, object] = {
-            "status": "UP" if store_ready and long_term_store_ready else "DOWN",
+            "status": "UP" if store_ready else "DOWN",
             "dependencies": {
                 "shortTermStore": "UP" if store_ready else "DOWN",
-                "longTermStore": "UP" if long_term_store_ready else "DOWN",
             },
         }
         if degraded_dependencies:
             content["degradedDependencies"] = degraded_dependencies
         return JSONResponse(
-            status_code=200 if store_ready and long_term_store_ready else 503,
+            status_code=200 if store_ready else 503,
             content=content,
         )
 

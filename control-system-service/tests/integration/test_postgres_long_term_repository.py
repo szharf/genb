@@ -70,24 +70,69 @@ async def test_postgres_contract_is_scoped_idempotent_and_soft_deletable() -> No
             repository, extraction_model=AcceptanceModel()
         ).process(job.extraction_id, f"request-{suffix}", None)
         own = await repository.search(
-            scope, query="iteration13", types=frozenset({"USER_PREFERENCE"}), limit=5
+            scope, query="iteration13", types=frozenset({"USER_PREFERENCE"}),
+            source_types=frozenset({"CONVERSATION"}), limit=5
         )
         isolated = await repository.search(
-            other_agent, query="iteration13", types=frozenset({"USER_PREFERENCE"}), limit=5
+            other_agent, query="iteration13", types=frozenset({"USER_PREFERENCE"}),
+            source_types=frozenset({"CONVERSATION"}), limit=5
         )
         deleted = await repository.delete_memory(
             scope, own[0].memory_id, actor="acceptance", reason="contract soft delete",
             request_id=f"request-{suffix}",
         )
         after_delete = await repository.search(
-            scope, query="iteration13", types=frozenset({"USER_PREFERENCE"}), limit=5
+            scope, query="iteration13", types=frozenset({"USER_PREFERENCE"}),
+            source_types=frozenset({"CONVERSATION"}), limit=5
         )
     finally:
         await repository.close()
 
     assert not duplicate and duplicate_again and same.extraction_id == job.extraction_id
     assert status == "SUCCEEDED" and len(own) == 1
+    assert own[0].source_type == "CONVERSATION"
     assert isolated == [] and deleted and after_delete == []
+
+
+@pytest.mark.asyncio
+async def test_postgres_search_applies_memory_source_filter_without_live_database() -> None:
+    captured: dict[str, object] = {}
+
+    class FakeCursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def execute(self, statement, parameters) -> None:
+            captured["statement"] = statement
+            captured["parameters"] = parameters
+
+        def fetchall(self) -> list[object]:
+            return []
+
+    class FakeConnection:
+        def cursor(self, **_kwargs) -> FakeCursor:
+            return FakeCursor()
+
+    repository = object.__new__(PostgreSQLLongTermMemoryRepository)
+
+    async def run(operation):
+        return operation(FakeConnection())
+
+    repository._run = run
+    result = await repository.search(
+        ("tenant-a", "user-a", "agent-a"),
+        query="policy",
+        types=frozenset({"STABLE_FACT"}),
+        source_types=frozenset({"KNOWLEDGE_BASE"}),
+        limit=5,
+    )
+
+    assert result == []
+    assert "source_type = ANY" in str(captured["statement"])
+    assert captured["parameters"][5] == ["KNOWLEDGE_BASE"]
 
 
 def test_long_term_tables_have_no_physical_foreign_keys() -> None:

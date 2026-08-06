@@ -12,7 +12,13 @@ from ..short_term_memory.redaction import redact_sensitive_content
 from ..telemetry import MetricsRegistry
 from .config import LongTermMemoryConfigProvider, MEMORY_TYPES
 from .extraction import MemoryExtractionModel
-from .models import ExtractionJob, ExtractionRequest, LongTermMemoryRecord, MemoryScope
+from .models import (
+    MEMORY_SOURCE_TYPES,
+    ExtractionJob,
+    ExtractionRequest,
+    LongTermMemoryRecord,
+    MemoryScope,
+)
 from .repository import (
     ExtractionIdempotencyConflict,
     LongTermMemoryRepository,
@@ -125,6 +131,7 @@ class LongTermMemoryService:
         *,
         query: str,
         requested_types: list[str] | None,
+        requested_source_types: list[str] | None,
         requested_top_k: int | None,
     ) -> tuple[list[LongTermMemoryRecord], int]:
         config = self._config(identity)
@@ -134,10 +141,16 @@ class LongTermMemoryService:
             else config.enabled_types
         )
         types = frozenset(types & config.enabled_types & MEMORY_TYPES)
+        source_types = frozenset(requested_source_types or MEMORY_SOURCE_TYPES)
+        source_types = frozenset(source_types & MEMORY_SOURCE_TYPES)
         limit = min(requested_top_k or config.top_k, config.max_top_k)
         try:
             items = await self._repository.search(
-                self.scope(identity), query=query, types=types, limit=limit
+                self.scope(identity),
+                query=query,
+                types=types,
+                source_types=source_types,
+                limit=limit,
             )
         except LongTermRepositoryUnavailable as error:
             raise LongTermMemoryUnavailableProblem(identity.request_id) from error

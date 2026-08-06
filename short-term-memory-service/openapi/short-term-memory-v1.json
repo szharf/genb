@@ -1,0 +1,16 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "GenB Short-term Memory Service", "version": "1.1.0" },
+  "paths": {
+    "/health/live": { "get": { "operationId": "getShortTermMemoryLiveness", "responses": { "200": { "description": "Live" } } } },
+    "/health/ready": { "get": { "operationId": "getShortTermMemoryReadiness", "responses": { "200": { "description": "Ready" } } } },
+    "/version": { "get": { "operationId": "getShortTermMemoryVersion", "responses": { "200": { "description": "Service version" } } } },
+    "/api/v1/short-term-memory/tasks/{task_id}": {
+      "get": { "operationId": "getShortTermMemoryTask", "responses": { "200": { "description": "Task workbench" } } },
+      "put": { "operationId": "updateShortTermMemoryTask", "responses": { "200": { "description": "Updated task workbench" } } },
+      "delete": { "operationId": "deleteShortTermMemoryTask", "responses": { "204": { "description": "Deleted" } } }
+    },
+    "/api/v1/short-term-memory/turns:commit": { "post": { "operationId": "commitShortTermMemoryTurn", "responses": { "200": { "description": "Committed turn" } } } },
+    "/api/v1/short-term-memory/context:prepare": { "post": { "operationId": "prepareShortTermMemoryContext", "responses": { "200": { "description": "Prepared context" } } } }
+  }
+}

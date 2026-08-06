@@ -1,0 +1,16 @@
+{
+  "manifestVersion": "1.0",
+  "systemCode": "CONTROL_SYSTEM",
+  "componentCode": "SHORT_TERM_MEMORY",
+  "implementationCode": "short-term-memory-service-v1",
+  "displayName": "短期记忆服务",
+  "owner": "GenB Core Components Team",
+  "runtimeType": "HTTP",
+  "interfaceVersion": "1.1.0",
+  "baseUrl": "http://127.0.0.1:18705",
+  "openApiPath": "openapi/short-term-memory-v1.json",
+  "configSchemaPath": "config/short-term-memory-config.schema.json",
+  "health": { "livePath": "/health/live", "readyPath": "/health/ready", "versionPath": "/version" },
+  "auth": { "type": "BEARER_JWT", "scopes": ["component:short-term-memory:read", "component:short-term-memory:write", "component:short-term-memory:delete"] },
+  "isolation": { "dimensions": ["tenantId", "agentId", "userId", "taskId"] }
+}

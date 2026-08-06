@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 
+from short_term_memory import main as main_module
 from short_term_memory.main import app
+from short_term_memory.service import InMemoryTaskStore, ShortTermMemoryService
 
 
 HEADERS = {
@@ -8,6 +10,19 @@ HEADERS = {
     "X-Agent-Id": "agent-a",
     "X-User-Id": "user-a",
 }
+
+
+def test_version_identifies_the_public_component_implementation() -> None:
+    with TestClient(app) as client:
+        response = client.get("/version")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "componentCode": "SHORT_TERM_MEMORY",
+        "implementationCode": "short-term-memory-service-v1",
+        "interfaceVersion": "1.1.0",
+        "serviceVersion": "0.1.0",
+    }
 
 
 def test_task_context_recovers_across_sessions() -> None:
@@ -73,6 +88,42 @@ def test_task_context_recovers_across_sessions() -> None:
                 "occurredAt": "2026-07-30T10:00:00Z",
             },
         ]
+
+
+def test_configured_storage_limit_keeps_complete_recent_turns(monkeypatch) -> None:
+    monkeypatch.setattr(
+        main_module,
+        "memory",
+        ShortTermMemoryService(InMemoryTaskStore(), max_stored_messages=4),
+    )
+    with TestClient(app) as client:
+        for turn_number in range(1, 4):
+            response = client.post(
+                "/api/v1/short-term-memory/turns:commit",
+                headers={**HEADERS, "Idempotency-Key": f"idem-bounded-turn-{turn_number}"},
+                json={
+                    "taskId": "task-bounded",
+                    "sessionId": "session-bounded",
+                    "turnId": f"turn-{turn_number}",
+                    "userMessage": f"问题{turn_number}",
+                    "assistantMessage": f"回答{turn_number}",
+                    "occurredAt": f"2026-07-30T10:0{turn_number}:00Z",
+                },
+            )
+            assert response.status_code == 200
+
+        prepared = client.post(
+            "/api/v1/short-term-memory/context:prepare",
+            headers=HEADERS,
+            json={"taskId": "task-bounded", "sessionId": "session-new", "maxMessages": 20},
+        )
+
+    assert prepared.status_code == 200
+    data = prepared.json()["data"]
+    assert [message["turnId"] for message in data["messages"]] == [
+        "turn-2", "turn-2", "turn-3", "turn-3"
+    ]
+    assert data["trimmedMessageCount"] == 2
 
 
 def test_task_is_isolated_and_can_be_deleted() -> None:

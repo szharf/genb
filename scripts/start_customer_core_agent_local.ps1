@@ -11,6 +11,7 @@ $backendDir = Join-Path $root 'gen-b\gen-b-backend'
 $runtimeDir = Join-Path $root 'runtime-system-service'
 $planningDir = Join-Path $root 'planning-reasoning-service'
 $memoryDir = Join-Path $root 'short-term-memory-service'
+$controlDir = Join-Path $root 'control-system-service'
 $agentDir = Join-Path $root 'control-system-test-agent'
 $python = 'D:\code\opencode\genb\gen-o\backend\.venv\Scripts\python.exe'
 $maven = 'D:\environment\maven\apache-maven-3.6.3\bin\mvn.cmd'
@@ -115,6 +116,9 @@ $dbPassword = if ($env:GENB_DB_PASSWORD) { $env:GENB_DB_PASSWORD } elseif ($pass
 $env:GENB_DB_URL = 'jdbc:postgresql://127.0.0.1:5432/genb_local?currentSchema=bank_agent_db&sslmode=disable'
 $env:GENB_DB_USERNAME = $dbUser
 $env:GENB_DB_PASSWORD = $dbPassword
+$env:GENB_REDIS_HOST = '127.0.0.1'
+$env:GENB_REDIS_PORT = '6379'
+$env:GENB_REDIS_PASSWORD = $RedisPassword
 
 Stop-ExpectedPort 8581 'GenBConsoleApplication'
 $env:CONTROL_SYSTEM_INTERNAL_TOKEN = $internalToken
@@ -173,6 +177,8 @@ if (-not $existingAgent -or $existingAgent.code -ne 200) {
         owner = $Username
         host = '127.0.0.1'
         port = 18714
+        accessUrl = 'http://localhost:18714/'
+        callbackUrl = 'http://localhost:18714/auth/callback'
         workDirectory = $agentDir
         startCommand = 'python -m uvicorn control_system_test_agent.web:app --host 127.0.0.1 --port 18714'
     } | Out-Null
@@ -183,7 +189,8 @@ if (-not $existingAgent -or $existingAgent.code -ne 200) {
     $agent.descriptionEn = 'A customer-facing agent that validates short-term memory, planning and reasoning, and model inference through natural-language conversation.'
     $agent.category = '核心组件体验'; $agent.categoryEn = 'Core Component Experience'
     $agent.status = 'AUTHORIZED'; $agent.runtimeState = 'RUNNING'; $agent.businessStatus = 'RUNNING'
-    $agent.host = '127.0.0.1'; $agent.port = 18714; $agent.workDirectory = $agentDir
+    $agent.host = '127.0.0.1'; $agent.port = 18714; $agent.accessUrl = 'http://localhost:18714/'; $agent.workDirectory = $agentDir
+    $agent.callbackUrl = 'http://localhost:18714/auth/callback'
     $agent.startCommand = 'python -m uvicorn control_system_test_agent.web:app --host 127.0.0.1 --port 18714'
     Invoke-GenB Put "/v1/agents/$agentId" $agent | Out-Null
 }
@@ -216,7 +223,12 @@ if (-not $runtimeConfig) {
         profileCode = 'customer-agent'
         config = @{
             provider = 'DIRECT_OPENAI_COMPATIBLE'
-            modelAliases = @('agent-chat-default', 'planning-authoring-default')
+            modelAliases = @(
+                'agent-chat-default',
+                'planning-analysis-default',
+                'planning-authoring-default',
+                'memory-extraction-default'
+            )
             providerConfiguration = 'RUNTIME_PROCESS_ENVIRONMENT'
         }
         secretRefs = @()
@@ -248,10 +260,63 @@ $planningConfig = @($planningDetail.configVersions) | Where-Object {
 if (-not $memoryImplementation -or -not $memoryConfig -or -not $planningImplementation -or -not $planningConfig) {
     throw 'Short-term memory or planning implementation/configuration is not ready'
 }
+$longTermDetail = Invoke-GenB Get '/v1/core-components/LONG_TERM_MEMORY'
+$longTermImplementation = @($longTermDetail.implementations) | Where-Object {
+    $_.implementationCode -eq 'long-term-memory-service-v1'
+} | Select-Object -First 1
+if (-not $longTermImplementation) {
+    $longTermImplementation = Invoke-GenB Post '/v1/core-components/LONG_TERM_MEMORY/implementations' @{
+        implementationCode = 'long-term-memory-service-v1'
+        owner = 'Long-term Memory Service'
+        runtimeType = 'HTTP'
+        interfaceVersion = '1.0.0'
+        baseUrl = 'http://127.0.0.1:18702'
+        healthUrl = 'http://127.0.0.1:18702/health/ready'
+        invocationAdapter = 'LONG_TERM_MEMORY_V1'
+    }
+}
+if ($longTermImplementation.status -ne 'REGISTERED') {
+    $longTermImplementation = Invoke-GenB Post "/v1/core-components/LONG_TERM_MEMORY/implementations/$($longTermImplementation.id):enable"
+}
+$longTermDetail = Invoke-GenB Get '/v1/core-components/LONG_TERM_MEMORY'
+$longTermConfig = @($longTermDetail.configVersions) | Where-Object {
+    $_.implementationCode -eq $longTermImplementation.implementationCode `
+        -and $_.profileCode -eq 'conversation-memory' `
+        -and $_.status -eq 'PUBLISHED' `
+        -and $_.config.modelAlias -eq 'memory-extraction-default'
+} | Select-Object -First 1
+if (-not $longTermConfig) {
+    $draft = Invoke-GenB Post '/v1/core-components/LONG_TERM_MEMORY/configs' @{
+        implementationCode = $longTermImplementation.implementationCode
+        profileCode = 'conversation-memory'
+        config = @{
+            enabledTypes = @('USER_PREFERENCE', 'STABLE_FACT', 'USER_CONSTRAINT')
+            autoExtractionEnabled = $true
+            confidenceThreshold = 0.8
+            retentionDays = 180
+            topK = 5
+            maxTopK = 20
+            modelAlias = 'memory-extraction-default'
+            maxAttempts = 3
+        }
+        secretRefs = @()
+        changeSummary = '18714长期对话记忆独立测试配置'
+    }
+    $longTermConfig = Invoke-GenB Post "/v1/core-components/LONG_TERM_MEMORY/configs/$($draft.id):publish"
+}
 
 $memoryBinding = Get-OrCreateBinding 'SHORT_TERM_MEMORY' $memoryImplementation.implementationCode $memoryConfig.id
+$longTermBinding = Get-OrCreateBinding 'LONG_TERM_MEMORY' $longTermImplementation.implementationCode $longTermConfig.id
 $planningBinding = Get-OrCreateBinding 'PLANNING_REASONING' $planningImplementation.implementationCode $planningConfig.id
 $runtimeBinding = Get-OrCreateBinding 'INFERENCE_ENGINE' $runtimeImplementation.implementationCode $runtimeConfig.id
+
+$longTermDetail = Invoke-GenB Get '/v1/core-components/LONG_TERM_MEMORY'
+$legacyLongTermImplementation = @($longTermDetail.implementations) | Where-Object {
+    $_.implementationCode -eq 'control-long-term-memory-iteration13' -and $_.status -ne 'DISABLED'
+} | Select-Object -First 1
+if ($legacyLongTermImplementation) {
+    Invoke-GenB Post "/v1/core-components/LONG_TERM_MEMORY/implementations/$($legacyLongTermImplementation.id):disable" | Out-Null
+}
 
 $credentialPath = Join-Path $secretDir "$agentId.credential.dpapi"
 if ((Test-Path -LiteralPath $credentialPath) -and -not $RotateAgentCredential) {
@@ -264,6 +329,9 @@ if ((Test-Path -LiteralPath $credentialPath) -and -not $RotateAgentCredential) {
             'component:short-term-memory:read',
             'component:short-term-memory:write',
             'component:short-term-memory:delete',
+            'component:long-term-memory:read',
+            'component:long-term-memory:write',
+            'component:long-term-memory:delete',
             'component:planning-reasoning:invoke',
             'component:inference-engine:infer'
         )
@@ -274,6 +342,8 @@ if ((Test-Path -LiteralPath $credentialPath) -and -not $RotateAgentCredential) {
 }
 
 Stop-ExpectedPort 18704 'runtime_system.main:app'
+Stop-ExpectedPort 18702 'long_term_memory.main:app'
+Stop-ExpectedPort 18701 'control_system.main:create_application'
 Stop-ExpectedPort 18712 'planning_reasoning.main:app'
 Stop-ExpectedPort 18714 'control_system_test_agent.web:app'
 
@@ -289,13 +359,36 @@ Start-Process -FilePath $python -ArgumentList @(
   -RedirectStandardError (Join-Path $logDir 'runtime.stderr.log') | Out-Null
 Wait-Url 'http://127.0.0.1:18704/health/ready'
 
-$env:PLANNING_REASONING_POSTGRES_DSN = "host=127.0.0.1 port=5432 dbname=genb_local user=$dbUser password=$dbPassword sslmode=disable"
+& (Join-Path $root 'scripts\start_long_term_memory_service_local.ps1') | Out-Null
+Wait-Url 'http://127.0.0.1:18702/health/ready'
+
+$env:APP_ENV = 'local'
+$env:CONTROL_SYSTEM_IDENTITY_ADAPTER = 'genb'
+$env:GENB_BASE_URL = 'http://127.0.0.1:8581'
+$env:CONTROL_SYSTEM_INTERNAL_TOKEN = $internalToken
+$env:REDIS_HOST = '127.0.0.1'
+$env:REDIS_PORT = '6379'
+$env:REDIS_PASSWORD = $RedisPassword
+$env:REDIS_KEY_PEPPER = $internalToken
+$env:RUNTIME_INFERENCE_BASE_URL = 'http://127.0.0.1:18704'
+$env:CONTROL_SYSTEM_RUNTIME_TOKEN = $credential
+$env:PYTHONPATH = Join-Path $controlDir 'src'
+Start-Process -FilePath $python -ArgumentList @(
+    '-m', 'uvicorn', 'control_system.main:create_application', '--factory', '--host', '127.0.0.1', '--port', '18701'
+) -WorkingDirectory $controlDir -WindowStyle Hidden `
+  -RedirectStandardOutput (Join-Path $logDir 'control.stdout.log') `
+  -RedirectStandardError (Join-Path $logDir 'control.stderr.log') | Out-Null
+Wait-Url 'http://127.0.0.1:18701/health/ready'
+
+$env:PLANNING_REASONING_POSTGRES_DSN = "host=127.0.0.1 port=5432 dbname=genb_local user=$dbUser password=$dbPassword sslmode=disable options='-c search_path=bank_agent_db'"
 $env:PLANNING_REASONING_AUTH_MODE = 'genb'
 $env:PLANNING_REASONING_GENB_URL = $backendUrl
 $env:PLANNING_REASONING_GENB_INTERNAL_TOKEN = $internalToken
 $env:PLANNING_REASONING_INFERENCE_URL = 'http://127.0.0.1:18704'
 $env:PLANNING_REASONING_MODEL_ALIAS = 'planning-authoring-default'
+$env:PLANNING_REASONING_ANALYSIS_MODEL_ALIAS = 'planning-analysis-default'
 $env:PYTHONPATH = Join-Path $planningDir 'src'
+& $python (Join-Path $planningDir 'scripts\apply_migrations.py')
 Start-Process -FilePath $python -ArgumentList @(
     '-m', 'uvicorn', 'planning_reasoning.main:app', '--host', '127.0.0.1', '--port', '18712'
 ) -WorkingDirectory $planningDir -WindowStyle Hidden `
@@ -306,7 +399,13 @@ Wait-Url 'http://127.0.0.1:18712/health/ready'
 $env:AGENT_ID = $agentId
 $env:GENB_BASE_URL = $backendUrl
 $env:SERVICE_CREDENTIAL = $credential
-$env:HTTP_TIMEOUT_SECONDS = '30'
+$env:HTTP_TIMEOUT_SECONDS = '90'
+$env:AGENT_REDIS_HOST = '127.0.0.1'
+$env:AGENT_REDIS_PORT = '6379'
+$env:AGENT_REDIS_PASSWORD = $RedisPassword
+$env:CONTROL_SYSTEM_BASE_URL = 'http://127.0.0.1:18701'
+$env:AGENT_CALLBACK_URL = 'http://localhost:18714/auth/callback'
+$env:PORTAL_AGENT_SSO_URL = 'http://localhost:9100/agent-sso'
 $env:PYTHONPATH = Join-Path $agentDir 'src'
 Start-Process -FilePath $python -ArgumentList @(
     '-m', 'uvicorn', 'control_system_test_agent.web:app', '--host', '127.0.0.1', '--port', '18714'
@@ -315,4 +414,4 @@ Start-Process -FilePath $python -ArgumentList @(
   -RedirectStandardError (Join-Path $logDir 'agent.stderr.log') | Out-Null
 Wait-Url 'http://127.0.0.1:18714/health/live'
 
-Write-Output "Customer core agent ready: direct=http://127.0.0.1:18714/, gateway=http://localhost:9100/core-agent/, bindings=$($memoryBinding.id),$($planningBinding.id),$($runtimeBinding.id)"
+Write-Output "Customer core agent ready: direct=http://127.0.0.1:18714/, bindings=$($memoryBinding.id),$($longTermBinding.id),$($planningBinding.id),$($runtimeBinding.id)"

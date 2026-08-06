@@ -32,8 +32,8 @@ class Settings:
             if values[key].startswith("${"):
                 raise ValueError(f"{key} contains an unresolved placeholder")
         timeout = float(values.get("HTTP_TIMEOUT_SECONDS", "5"))
-        if timeout <= 0 or timeout > 30:
-            raise ValueError("HTTP_TIMEOUT_SECONDS must be greater than 0 and at most 30")
+        if timeout <= 0 or timeout > 120:
+            raise ValueError("HTTP_TIMEOUT_SECONDS must be greater than 0 and at most 120")
         return cls(
             agent_id=values["AGENT_ID"],
             genb_base_url=values["GENB_BASE_URL"],
@@ -63,8 +63,8 @@ class WebSettings:
         if values["SERVICE_CREDENTIAL"].startswith("${"):
             raise ValueError("SERVICE_CREDENTIAL contains an unresolved placeholder")
         timeout = float(values.get("HTTP_TIMEOUT_SECONDS", "5"))
-        if timeout <= 0 or timeout > 30:
-            raise ValueError("HTTP_TIMEOUT_SECONDS must be greater than 0 and at most 30")
+        if timeout <= 0 or timeout > 120:
+            raise ValueError("HTTP_TIMEOUT_SECONDS must be greater than 0 and at most 120")
         return cls(
             agent_id=values["AGENT_ID"],
             genb_base_url=values["GENB_BASE_URL"],

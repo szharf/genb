@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from planning_reasoning.service import _skill_name
+
 from planning_reasoning.main import app
 
 
@@ -82,3 +84,5 @@ def test_complex_requirement_uses_mcp_and_human_approval_template() -> None:
     assert "## Human Approval" in markdown
     assert "## Failure Escalation" in markdown
     assert data["validation"]["valid"] is True
+def test_chinese_display_name_with_generic_skill_suffix_gets_meaningful_technical_name() -> None:
+    assert _skill_name("银行对公授信材料检查Skill") == "corporate-credit-material-check"

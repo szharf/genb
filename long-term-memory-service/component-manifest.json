@@ -1,0 +1,16 @@
+{
+  "manifestVersion": "1.0",
+  "systemCode": "CONTROL_SYSTEM",
+  "componentCode": "LONG_TERM_MEMORY",
+  "implementationCode": "long-term-memory-service-v1",
+  "displayName": "长期记忆服务",
+  "owner": "GenB Core Components Team",
+  "runtimeType": "HTTP",
+  "interfaceVersion": "1.0.0",
+  "baseUrl": "http://127.0.0.1:18702",
+  "openApiPath": "openapi/long-term-memory-v1.json",
+  "configSchemaPath": "config/long-term-memory-config.schema.json",
+  "health": { "livePath": "/health/live", "readyPath": "/health/ready", "versionPath": "/version" },
+  "auth": { "type": "BEARER_JWT", "scopes": ["component:long-term-memory:read", "component:long-term-memory:write", "component:long-term-memory:delete"] },
+  "isolation": { "dimensions": ["tenantId", "agentId", "userId", "conversationId"] }
+}

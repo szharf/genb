@@ -28,9 +28,58 @@ class RequirementRequest(BaseModel):
 
 
 class ClarificationQuestion(BaseModel):
-    field: Literal["goal", "expectedInputs", "expectedOutputs", "constraints"]
+    model_config = ConfigDict(populate_by_name=True)
+
+    question_id: str | None = Field(default=None, alias="questionId")
+    field: str
+    topic: Literal["GOAL", "INPUT", "OUTPUT", "WORKFLOW", "RULE", "TOOL", "APPROVAL", "EXCEPTION"] | None = None
     question: str
+    reason: str | None = None
+    input_hint: str | None = Field(default=None, alias="inputHint")
     required: bool = True
+
+
+class RequirementDraft(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str = ""
+    description: str = ""
+    goal: str = ""
+    expected_inputs: list[str] = Field(default_factory=list, alias="expectedInputs")
+    expected_outputs: list[str] = Field(default_factory=list, alias="expectedOutputs")
+    constraints: list[str] = Field(default_factory=list)
+    preferred_tools: list[str] = Field(default_factory=list, alias="preferredTools")
+    tool_references: list[ToolReference] = Field(default_factory=list, alias="toolReferences")
+    risk_level: Literal["LOW", "MEDIUM", "HIGH"] = Field(default="LOW", alias="riskLevel")
+    confirmed_facts: list[dict[str, str | bool]] = Field(default_factory=list, alias="confirmedFacts")
+    candidate_facts: list[dict[str, str | bool]] = Field(default_factory=list, alias="candidateFacts")
+    unknown_fields: list[str] = Field(default_factory=list, alias="unknownFields")
+    conflicts: list[str] = Field(default_factory=list)
+    asked_question_ids: list[str] = Field(default_factory=list, alias="askedQuestionIds")
+    asked_questions: list[str] = Field(default_factory=list, alias="askedQuestions")
+
+
+class RequirementConversationResult(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    status: Literal["CLARIFYING", "READY"]
+    complexity: Literal["SIMPLE", "COMPLEX"]
+    draft: RequirementDraft
+    questions: list[ClarificationQuestion] = Field(max_length=3)
+    references: list[dict[str, str | bool]] = Field(default_factory=list)
+    decision_summary: str = Field(alias="decisionSummary")
+
+
+class RequirementConversationRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    task_id: ShortText = Field(alias="taskId")
+    session_id: ShortText = Field(alias="sessionId")
+    message: NonBlankText
+
+
+class RequirementConversationResponse(BaseModel):
+    data: RequirementConversationResult
 
 
 class RequirementAnalysis(BaseModel):
@@ -51,6 +100,7 @@ class SkillGenerateRequest(BaseModel):
     name: ShortText
     description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=10, max_length=1024)]
     requirements: RequirementRequest
+    approved_references: list[dict[str, str | bool]] = Field(default_factory=list, alias="approvedReferences", max_length=20)
 
 
 class ValidationIssue(BaseModel):

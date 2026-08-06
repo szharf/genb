@@ -110,7 +110,7 @@ Start-Process -FilePath $maven -ArgumentList @(
   -RedirectStandardError (Join-Path $logDir 'backend.stderr.log') | Out-Null
 Wait-Url "$backendUrl/actuator/health" 90
 
-$env:PLANNING_REASONING_POSTGRES_DSN = "host=127.0.0.1 port=5432 dbname=genb_local user=$dbUser password=$dbPassword sslmode=disable"
+$env:PLANNING_REASONING_POSTGRES_DSN = "host=127.0.0.1 port=5432 dbname=genb_local user=$dbUser password=$dbPassword sslmode=disable options='-c search_path=bank_agent_db'"
 $env:PLANNING_REASONING_AUTH_MODE = 'genb'
 $env:PLANNING_REASONING_GENB_URL = $backendUrl
 $env:PLANNING_REASONING_GENB_INTERNAL_TOKEN = $internalToken

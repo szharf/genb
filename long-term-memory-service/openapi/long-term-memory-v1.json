@@ -1,0 +1,21 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "GenB Long-term Memory Service", "version": "1.0.0" },
+  "paths": {
+    "/health/live": { "get": { "operationId": "getLongTermMemoryLiveness", "responses": { "200": { "description": "Live" } } } },
+    "/health/ready": { "get": { "operationId": "getLongTermMemoryReadiness", "responses": { "200": { "description": "Ready" } } } },
+    "/version": { "get": { "operationId": "getLongTermMemoryVersion", "responses": { "200": { "description": "Service version" } } } },
+    "/api/v1/long-term-memory/extractions": { "post": { "operationId": "createConversationMemoryExtraction", "responses": { "202": { "description": "Conversation extraction accepted" } } } },
+    "/api/v1/long-term-memory/extractions/{extraction_id}": { "get": { "operationId": "getConversationMemoryExtraction", "responses": { "200": { "description": "Extraction status" }, "404": { "description": "Extraction is outside the caller scope or does not exist" } } } },
+    "/api/v1/long-term-memory/memories:search": { "post": { "operationId": "searchLongTermMemories", "responses": { "200": { "description": "Recalled memories" } } } },
+    "/api/v1/long-term-memory/memories/{memory_id}": {
+      "delete": { "operationId": "deleteLongTermMemory", "responses": { "200": { "description": "Memory soft-deleted" } } }
+    },
+    "/api/v1/long-term-memory/memories/{memory_id}:correct": {
+      "post": { "operationId": "correctLongTermMemory", "responses": { "200": { "description": "Memory corrected and previous version superseded" }, "404": { "description": "Memory is outside the caller scope or not active" } } }
+    },
+    "/api/v1/long-term-memory/memories/{memory_id}:feedback": {
+      "post": { "operationId": "recordLongTermMemoryFeedback", "responses": { "200": { "description": "Memory feedback recorded" }, "404": { "description": "Memory is outside the caller scope or not active" } } }
+    }
+  }
+}

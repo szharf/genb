@@ -61,6 +61,8 @@ class LongTermMemoryItem:
     memory_type: str
     content: str
     confidence: float
+    source_type: str
+    source_ref: str
 
 
 @dataclass(frozen=True)
@@ -93,3 +95,4 @@ class CustomerChatResult:
     skill: dict[str, object] | None
     committed: bool
     diagnostics: CustomerDiagnostics
+    planning: dict[str, object] | None = None

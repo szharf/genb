@@ -1,0 +1,16 @@
+{
+  "manifestVersion": "1.0",
+  "systemCode": "CONTROL_SYSTEM",
+  "componentCode": "PLANNING_REASONING",
+  "implementationCode": "planning-reasoning-service-v1",
+  "displayName": "规划与推理服务",
+  "owner": "GenB Core Components Team",
+  "runtimeType": "HTTP",
+  "interfaceVersion": "1.1.1",
+  "baseUrl": "http://127.0.0.1:18712",
+  "openApiPath": "openapi/planning-reasoning-v1.json",
+  "configSchemaPath": "config/planning-reasoning-config.schema.json",
+  "health": { "livePath": "/health/live", "readyPath": "/health/ready", "versionPath": "/version" },
+  "auth": { "type": "BEARER_JWT", "scopes": ["component:planning-reasoning:invoke"] },
+  "isolation": { "dimensions": ["tenantId", "agentId", "userId", "taskId"] }
+}

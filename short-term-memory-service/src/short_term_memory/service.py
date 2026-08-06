@@ -40,6 +40,7 @@ class TaskRecord:
     messages: list[dict[str, Any]] = field(default_factory=list)
     expires_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=1))
     idempotency: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    dropped_message_count: int = 0
 
 
 Mutation = Callable[[TaskRecord | None], tuple[TaskRecord | None, T]]
@@ -153,15 +154,25 @@ class RedisTaskStore:
             messages=document.get("messages", []),
             expires_at=datetime.fromisoformat(document["expires_at"]),
             idempotency=document.get("idempotency", {}),
+            dropped_message_count=document.get("dropped_message_count", 0),
         )
 
 
 class ShortTermMemoryService:
     """Owns isolation, expiry and task recovery behind a storage-independent interface."""
 
-    def __init__(self, store: TaskStore | None = None, clock: Callable[[], datetime] | None = None) -> None:
+    def __init__(
+        self,
+        store: TaskStore | None = None,
+        clock: Callable[[], datetime] | None = None,
+        *,
+        max_stored_messages: int = 200,
+    ) -> None:
+        if max_stored_messages < 2 or max_stored_messages % 2 != 0:
+            raise ValueError("max_stored_messages must be an even integer of at least 2")
         self.store = store or InMemoryTaskStore()
         self._clock = clock or (lambda: datetime.now(timezone.utc))
+        self._max_stored_messages = max_stored_messages
 
     def save_workbench(self, scope: CallerScope, task_id: str, update: WorkbenchUpdate) -> dict[str, Any]:
         now = self._clock()
@@ -191,6 +202,10 @@ class ShortTermMemoryService:
                 {"turnId": request.turn_id, "sessionId": request.session_id, "role": "user", "content": redact(request.user_message), "occurredAt": occurred_at},
                 {"turnId": request.turn_id, "sessionId": request.session_id, "role": "assistant", "content": redact(request.assistant_message), "occurredAt": occurred_at},
             ])
+            overflow = max(0, len(current.messages) - self._max_stored_messages)
+            if overflow:
+                del current.messages[:overflow]
+                current.dropped_message_count += overflow
             result = {"taskId": request.task_id, "messageCount": len(current.messages), "replayed": False}
             current.idempotency[idempotency_key] = [payload, result]
             return current, result
@@ -199,7 +214,28 @@ class ShortTermMemoryService:
 
     def prepare_context(self, scope: CallerScope, request: ContextPrepareRequest) -> dict[str, Any]:
         record = self.store.read(self._key(scope, request.task_id), self._clock())
-        return {"taskId": request.task_id, "sessionId": request.session_id, "messages": [] if record is None else list(record.messages[-request.max_messages:]), "workbench": None if record is None else record.workbench}
+        if record is None:
+            return {
+                "taskId": request.task_id,
+                "sessionId": request.session_id,
+                "messages": [],
+                "workbench": None,
+                "trimmedMessageCount": 0,
+            }
+        selected_groups: list[list[dict[str, Any]]] = []
+        for index in range(len(record.messages) - 1, -1, -2):
+            group = record.messages[max(0, index - 1):index + 1]
+            if len(group) != 2 or len(selected_groups) * 2 + 2 > request.max_messages:
+                break
+            selected_groups.append(group)
+        selected = [message for group in reversed(selected_groups) for message in group]
+        return {
+            "taskId": request.task_id,
+            "sessionId": request.session_id,
+            "messages": selected,
+            "workbench": record.workbench,
+            "trimmedMessageCount": record.dropped_message_count + len(record.messages) - len(selected),
+        }
 
     def get_task(self, scope: CallerScope, task_id: str) -> dict[str, Any] | None:
         record = self.store.read(self._key(scope, task_id), self._clock())

@@ -17,7 +17,11 @@
           "type": {"const": "OPENAI_COMPATIBLE"},
           "baseUrl": {"type": "string", "minLength": 1},
           "secretRef": {"type": "string", "pattern": "^env://[A-Za-z_][A-Za-z0-9_]*$"},
-          "timeoutMs": {"type": "integer", "minimum": 1, "maximum": 120000}
+          "timeoutMs": {"type": "integer", "minimum": 1, "maximum": 120000},
+          "structuredOutputMode": {
+            "enum": ["JSON_SCHEMA", "JSON_OBJECT"],
+            "default": "JSON_SCHEMA"
+          }
         },
         "additionalProperties": false
       }

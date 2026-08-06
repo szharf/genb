@@ -6,7 +6,115 @@ from typing import Protocol
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-from .models import SkillArtifact
+from .models import RequirementDraft, SkillArtifact
+
+
+class RequirementDraftRepository(Protocol):
+    def get_draft(
+        self, *, tenant_id: str, agent_id: str, user_id: str, task_id: str
+    ) -> RequirementDraft | None: ...
+
+    def save_draft(
+        self,
+        draft: RequirementDraft,
+        *,
+        tenant_id: str,
+        agent_id: str,
+        user_id: str,
+        task_id: str,
+        session_id: str,
+    ) -> None: ...
+
+
+class InMemoryRequirementDraftRepository:
+    def __init__(self) -> None:
+        self._drafts: dict[tuple[str, str, str, str], RequirementDraft] = {}
+
+    def get_draft(
+        self, *, tenant_id: str, agent_id: str, user_id: str, task_id: str
+    ) -> RequirementDraft | None:
+        draft = self._drafts.get((tenant_id, agent_id, user_id, task_id))
+        return draft.model_copy(deep=True) if draft is not None else None
+
+    def save_draft(
+        self,
+        draft: RequirementDraft,
+        *,
+        tenant_id: str,
+        agent_id: str,
+        user_id: str,
+        task_id: str,
+        session_id: str,
+    ) -> None:
+        del session_id
+        self._drafts[(tenant_id, agent_id, user_id, task_id)] = draft.model_copy(deep=True)
+
+
+class PostgreSQLRequirementDraftRepository:
+    def __init__(self, dsn: str) -> None:
+        if not dsn:
+            raise ValueError("PostgreSQL DSN is required")
+        self._dsn = dsn
+
+    def get_draft(
+        self, *, tenant_id: str, agent_id: str, user_id: str, task_id: str
+    ) -> RequirementDraft | None:
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT draft_json FROM planning_requirement_drafts
+                WHERE tenant_id=%s AND agent_id=%s AND user_id=%s AND task_id=%s
+                """,
+                (tenant_id, agent_id, user_id, task_id),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return None
+            payload = row[0]
+            return RequirementDraft.model_validate_json(payload) if isinstance(payload, str) else RequirementDraft.model_validate(payload)
+
+    def save_draft(
+        self,
+        draft: RequirementDraft,
+        *,
+        tenant_id: str,
+        agent_id: str,
+        user_id: str,
+        task_id: str,
+        session_id: str,
+    ) -> None:
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO planning_requirement_drafts
+                  (tenant_id, agent_id, user_id, task_id, last_session_id, draft_json, updated_at)
+                VALUES (%s,%s,%s,%s,%s,%s::jsonb,now())
+                ON CONFLICT (tenant_id, agent_id, user_id, task_id)
+                DO UPDATE SET last_session_id=EXCLUDED.last_session_id,
+                              draft_json=EXCLUDED.draft_json,
+                              updated_at=now()
+                """,
+                (
+                    tenant_id,
+                    agent_id,
+                    user_id,
+                    task_id,
+                    session_id,
+                    draft.model_dump_json(by_alias=True),
+                ),
+            )
+
+    @contextmanager
+    def _connection(self) -> Iterator:
+        connection = psycopg2.connect(self._dsn, connect_timeout=3)
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
 
 
 class SkillRepository(Protocol):
