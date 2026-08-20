@@ -221,3 +221,66 @@ def test_local_fake_provider_supports_explicit_session_summary() -> None:
     assert response.status_code == 200
     assert response.json()["data"]["content"].startswith("Local-test summary")
     assert response.json()["data"]["provider"] == "FAKE"
+
+
+def test_local_fake_provider_supports_customer_agent_and_planning_acceptance() -> None:
+    app = create_app(
+        identity_verifier=StaticTokenIdentityVerifier(
+            tokens={"test-service-token": {"component:inference-engine:infer"}}
+        )
+    )
+    headers = {
+        "Authorization": "Bearer test-service-token",
+        "X-Request-Id": "req-m5-fake",
+    }
+    with TestClient(app) as client:
+        chat = client.post("/api/v1/runtime-system/inference", headers=headers, json={
+            "capability": "AGENT_CHAT", "modelAlias": "agent-chat-default",
+            "messages": [{"role": "user", "content": "帮我生成材料检查Skill"}],
+        })
+        analysis = client.post("/api/v1/runtime-system/inference", headers=headers, json={
+            "capability": "SKILL_REQUIREMENT_ANALYSIS", "modelAlias": "planning-analysis-default",
+            "messages": [{"role": "user", "content": '{"previousDraft":null,"currentMessage":"生成材料检查Skill"}'}],
+        })
+        skill = client.post("/api/v1/runtime-system/inference", headers=headers, json={
+            "capability": "SKILL_AUTHORING", "modelAlias": "planning-authoring-default",
+            "messages": [{"role": "user", "content": "Skill技术名称：material-check\n复杂度：SIMPLE"}],
+        })
+    assert chat.status_code == 200
+    assert '"intent": "CREATE_SKILL"' in chat.json()["data"]["content"]
+    assert analysis.status_code == 200
+    assert '"status": "CLARIFYING"' in analysis.json()["data"]["content"]
+    assert skill.status_code == 200
+    assert skill.json()["data"]["content"].startswith("---\nname: material-check")
+
+
+def test_local_fake_provider_extracts_one_durable_memory_for_real_service_acceptance() -> None:
+    app = create_app(
+        identity_verifier=StaticTokenIdentityVerifier(
+            tokens={"test-service-token": {"component:inference-engine:infer"}}
+        )
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/runtime-system/inference",
+            headers={"Authorization": "Bearer test-service-token", "X-Request-Id": "req-m5-memory"},
+            json={
+                "capability": "MEMORY_EXTRACTION", "modelAlias": "memory-extraction-default",
+                "messages": [{"role": "user", "content": "USER_MESSAGE:\n我长期偏好Markdown检查表\n\nASSISTANT_FINAL:\n已记录"}],
+                "responseFormat": {
+                    "type": "JSON_SCHEMA", "schemaName": "long_term_memory_extraction_v1",
+                    "jsonSchema": {
+                        "type": "object", "required": ["memories"], "additionalProperties": False,
+                        "properties": {"memories": {"type": "array", "items": {
+                            "type": "object", "required": ["type", "content", "confidence", "action"],
+                            "additionalProperties": False, "properties": {
+                                "type": {"type": "string"}, "content": {"type": "string"},
+                                "confidence": {"type": "number"}, "action": {"type": "string"},
+                            },
+                        }}},
+                    },
+                },
+            },
+        )
+    assert response.status_code == 200
+    assert response.json()["data"]["structured"]["memories"][0]["content"] == "我长期偏好Markdown检查表"

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://genb.local/contracts/capability-invocation.schema.json",
+  "title": "GenB Capability Invocation Envelope",
+  "type": "object",
+  "required": ["schemaVersion", "context", "payload"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "context": {
+      "type": "object",
+      "required": ["requestId", "conversationId"],
+      "properties": {
+        "requestId": { "type": "string", "minLength": 1 },
+        "conversationId": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "payload": {}
+  },
+  "additionalProperties": false
+}

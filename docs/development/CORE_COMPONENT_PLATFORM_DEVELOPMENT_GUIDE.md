@@ -1,5 +1,7 @@
 # GenB核心组件平台全栈开发总纲：GenB、五大系统、14个核心组件与智能体
 
+> 2026-08-05架构修订：五个系统仅作为GenB分类，十四个核心组件分别提供独立公共服务。原文中的推荐系统级合并服务拓扑不再生效；稳定code和接入要求以`records/decisions/20260805-ADR-fourteen-component-services-five-system-classification.md`和`CORE_COMPONENT_SERVICE_INTEGRATION_SPEC.md`为准。
+
 > 文档类型：平台级开发总纲（Master Development Guide）  
 > 状态：编码前评审稿  
 > 版本：v1.1  

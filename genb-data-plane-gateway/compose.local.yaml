@@ -1,0 +1,58 @@
+services:
+  redis:
+    image: redis:7.4.2-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    networks: [data-plane]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  gateway:
+    build: .
+    image: genb-data-plane-gateway:local-m5
+    read_only: true
+    tmpfs: ["/tmp:size=16m"]
+    user: "65532:65532"
+    ports: ["127.0.0.1:9080:9080"]
+    environment:
+      GENB_CONTROL_URL: ${GENB_CONTROL_URL}
+      GENB_PUBLIC_ORIGIN: ${GENB_PUBLIC_ORIGIN}
+      GENB_PORTAL_AUTHORIZE_URL: ${GENB_PORTAL_AUTHORIZE_URL}
+      GENB_GATEWAY_CALLBACK_URL: ${GENB_GATEWAY_CALLBACK_URL}
+      GENB_REDIS_HOST: redis
+      GENB_ALLOWED_UPSTREAMS: ${GENB_ALLOWED_UPSTREAMS}
+      GENB_GATEWAY_MACHINE_TOKEN_FILE: /run/secrets/gateway_machine_token
+      GENB_NGINX_TOKEN_FILE: /run/secrets/nginx_token
+      GENB_INVALIDATION_TOKEN_FILE: /run/secrets/invalidation_token
+      GENB_AGENT_CREDENTIALS_FILE: /run/secrets/agent_credentials
+      MEMORY_TOKEN_FILE: /run/secrets/memory_token
+    secrets:
+      - gateway_machine_token
+      - nginx_token
+      - invalidation_token
+      - agent_credentials
+      - memory_token
+    depends_on:
+      redis: {condition: service_healthy}
+    networks: [data-plane]
+    mem_limit: 1g
+    cpus: 1.0
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9080/health/ready', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+networks:
+  data-plane: {internal: false}
+
+secrets:
+  gateway_machine_token: {file: "${GENB_GATEWAY_MACHINE_TOKEN_FILE}"}
+  nginx_token: {file: "${GENB_NGINX_TOKEN_FILE}"}
+  invalidation_token: {file: "${GENB_INVALIDATION_TOKEN_FILE}"}
+  agent_credentials: {file: "${GENB_AGENT_CREDENTIALS_FILE}"}
+  memory_token: {file: "${MEMORY_TOKEN_FILE}"}

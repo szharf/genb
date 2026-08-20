@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://genb.local/contracts/problem-details.schema.json",
+  "title": "GenB RFC 9457 Problem Details",
+  "type": "object",
+  "required": ["type", "title", "status", "detail", "code", "requestId", "retriable"],
+  "properties": {
+    "type": { "type": "string", "format": "uri-reference" },
+    "title": { "type": "string", "minLength": 1 },
+    "status": { "type": "integer", "minimum": 400, "maximum": 599 },
+    "detail": { "type": "string" },
+    "code": {
+      "enum": [
+        "AUTHENTICATION_REQUIRED", "INVALID_IDENTITY_TOKEN", "ACCESS_DENIED", "CAPABILITY_NOT_BOUND",
+        "IMPLEMENTATION_UNAVAILABLE", "OPERATION_NOT_FOUND", "INVALID_REQUEST", "REQUEST_TOO_LARGE",
+        "IDEMPOTENCY_KEY_REQUIRED", "IDEMPOTENCY_CONFLICT", "INVALID_AGENT_IDENTITY", "CIRCUIT_OPEN",
+        "INVALID_UPSTREAM_RESPONSE", "UPSTREAM_TIMEOUT", "UPSTREAM_UNAVAILABLE", "RATE_LIMITED",
+        "CONFIGURATION_UNAVAILABLE", "NOT_FOUND",
+        "INVALID_RETURN_PATH", "INVALID_LOGIN_STATE", "AUTHORIZATION_CODE_INVALID", "IDENTITY_EXCHANGE_MISMATCH",
+        "INVALID_ORIGIN", "INVALID_PROXY_IDENTITY", "INVALID_AGENT_PATH", "INVALID_GATEWAY_SESSION", "AGENT_ACCESS_DENIED"
+      ]
+    },
+    "requestId": { "type": "string", "minLength": 1 },
+    "retriable": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

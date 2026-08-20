@@ -276,6 +276,24 @@ def test_customer_page_is_a_plain_language_conversation_not_an_engineering_form(
     assert "ANALYZE ·" not in page.text
 
 
+def test_customer_page_uses_an_inline_favicon_without_a_failing_network_request() -> None:
+    class ValidSessionStore:
+        async def get(self, _session_id: str) -> CustomerSession:
+            return CustomerSession(
+                "agent-session-grant", "core-component-demo-agent", 42, "customer-a"
+            )
+
+    application = create_app()
+    application.dependency_overrides[get_session_store] = lambda: ValidSessionStore()
+    with TestClient(application) as client:
+        client.cookies.set("genb_agent_session", "opaque-browser-session-id")
+        page = client.get("/")
+
+    assert page.status_code == 200
+    assert 'rel="icon"' in page.text
+    assert 'href="data:image/svg+xml,' in page.text
+
+
 def test_customer_page_separates_three_core_component_test_workspaces() -> None:
     class ValidSessionStore:
         async def get(self, _session_id: str) -> CustomerSession:
@@ -493,6 +511,26 @@ def test_customer_page_redirects_to_login_when_agent_session_is_missing() -> Non
 
     assert response.status_code == 303
     assert response.headers["location"] == "/auth/login"
+
+
+def test_gateway_identity_opens_workspace_without_second_agent_login(monkeypatch) -> None:
+    monkeypatch.setenv("AGENT_ID", "core-component-demo-agent")
+    monkeypatch.setenv("GENB_BASE_URL", "http://genb.local")
+    monkeypatch.setenv("SERVICE_CREDENTIAL", "machine-credential")
+    application = create_app()
+    headers = {
+        "X-GenB-Identity-Token":"signed-gateway-identity",
+        "X-GenB-User-Id":"42",
+        "X-GenB-Agent-Id":"core-component-demo-agent",
+    }
+    with TestClient(application) as client:
+        page = client.get("/", headers=headers, follow_redirects=False)
+        session = client.get("/api/session", headers=headers)
+
+    assert page.status_code == 200
+    assert session.json()["data"] == {
+        "agentId":"core-component-demo-agent", "userId":42, "username":"42",
+    }
 
 
 def test_customer_page_uses_only_the_agent_server_session() -> None:
@@ -733,7 +771,7 @@ def test_customer_page_exposes_unified_logout_action() -> None:
         script = client.get("/assets/app.js")
 
     assert 'id="logoutButton"' in response.text
-    assert 'action="./auth/logout"' in response.text
+    assert 'action="/agents/_auth/logout"' in response.text
 
 
 def test_agent_login_refresh_chat_and_logout_use_one_server_side_session(monkeypatch) -> None:

@@ -1,5 +1,194 @@
 # 当前任务看板
 
+## 阅读入口（2026-08-20）
+
+- 当前执行只看本文件最前面的“仅 GenB 容量例外生产部署”和“统一数据面网关受控上线”；后续条目是历史任务快照，不代表仍待执行。
+- 当前唯一允许恢复的生产动作是“仅 GenB”计划，但其 M0 Gate A 未通过，服务器仍保持零修改；恢复条件见对应 M0 报告。
+- 统一数据面本地实现已完成 M0-M5 和 Gate A-F，生产上线仍被后端容量 Gate 阻塞，不得根据本地完成状态直接部署。
+- 查当前结论先读 `PROJECT_INDEX.md` 的“当前工作树”，查历史证据再读 `records/RECORDS_INDEX.md`，不要从聊天记录补架构或部署决定。
+- 同事交付入口位于 `gen-b/项目说明.md` 和 `gen-b/创建所需表.sql`；压缩包是本地交付物，不纳入 Git。
+
+## 任务：仅 GenB 容量例外生产部署
+
+- 日期：2026-08-18
+- 计划：`records/plans/20260818-PLAN-genb-only-capacity-exception-production-deployment.md`
+- 当前状态：M0已执行，Gate A未通过；未上传或修改服务器。后端根分区已达到95%硬停止线；客户端39/41通过，两个失败揭示当前客户端依赖本轮不部署的`/agents/{agentId}/`入口，直接发布会使现有智能体入口回归。等待容量恢复及客户端发布范围确认。
+- 本轮范围：仅 GenB 后端、管理端/客户端中英文静态产物、必要的数据库增量迁移和必要时的 GenB Nginx 精确路由调整。
+- 明确排除：统一数据面网关、专用 Redis、Runtime、核心组件服务、18714及其他智能体、GenC、GenO、GitLab和其他项目资产。
+- 容量边界：原 Gate B仍未通过；当前约94%/6.2GiB仅按一次容量例外评估。部署前及每阶段必须保持根分区低于95%、可用不少于5GiB，预计峰值新增不超过1GiB，否则停止。
+- 前置阻塞：必须冻结可追溯发布快照，并在生产数据副本验证新增SQL与旧生产JAR的回滚兼容性；不通过不得上线。
+- M0证据：`records/reports/20260818-REPORT-genb-only-deployment-m0.md`。
+
+## 任务：统一数据面网关受控上线
+
+- 日期：2026-08-12
+- 当前状态：本地实现M0-M5与Gate A-F全部通过。上线前检查M0 Gate A通过；M1已删除23个精确校验的GenB旧JAR并安装三个GenB日志的项目专用logrotate，释放约1.42GiB，GenB未重启且健康与统一登录回归通过。后端根分区仍为91%、仅余8.7GiB，Gate B未通过；已停止扩大清理范围，当前等待单独批准云盘快照和扩容。仍不得生产部署。
+- 总体方案：前端服务器仅保留Nginx和静态入口；后端以一个轻量部署单元承载智能体访问与核心组件调用两个内部模块；GenB只作控制面；使用L1进程缓存与专用Redis；按智能体和能力逐步迁移。
+- 执行顺序：本地方案实现Gate F → 上线前检查与服务器治理Gate D → 生产部署Gate A-E。先完成全部本地代码、测试、镜像和样例配置；部署前再检查并治理服务器；两个前置Gate均通过后才允许生产切流。
+- 上线检查计划：`records/plans/20260812-PLAN-production-readiness-inspection-and-remediation.md`
+- 上线检查治理范围已收紧为GenB/Genesis白名单资产；不进入GenC、GenO、GitLab、其他智能体、其他团队Docker资产或现有Redis清理。GenB自身释放空间不足时必须停止并转磁盘扩容。
+- 方案实现计划：`records/plans/20260812-PLAN-unified-data-plane-gateway-implementation.md`
+- 方案实现计划已按arc42、KEP和MADR结构扩展为详细开发基线，包含方案选择、现状到目标矩阵、信任关系、Module与Interface、四类运行时场景、GenB数据模型、缓存TTL、安全、兼容分类、质量指标和Gate A-F；开发不得依赖聊天记录补齐决定。
+- 部署计划：`records/plans/20260812-PLAN-unified-data-plane-gateway-production-deployment.md`
+- 当前边界：本地源码、合同、管理端和本地`genb_local.bank_agent_db`已完成实现；服务器仅执行了M0白名单只读盘点和公开健康请求，未修改生产Nginx、Redis、数据库、应用文件或运行容器。
+- M0证据：`records/baselines/20260812-BASELINE-unified-data-plane-gateway-m0.md`、`records/decisions/20260812-ADR-unified-data-plane-gateway.md`、`docs/security/UNIFIED_DATA_PLANE_GATEWAY_THREAT_MODEL.md`及`contracts/`数据面合同；未操作服务器、生产Nginx、生产Redis、生产数据库或运行容器。
+- M1证据：`gen-b/gen-b-backend`数据面控制Interface及集成测试、`gen-b/gen-b-console`治理表单与构建、`gen-b/gen-b-backend/src/main/resources/db/V20260812_01__create_data_plane_config_state.sql`和`V20260812_02__add_data_plane_implementation_metadata.sql`；迁移前备份保存在本机D盘且不纳入Git。
+- M5完成报告：`records/reports/20260813-REPORT-unified-data-plane-gateway-m5.md`。原检查点报告保留为历史证据，真实三组件进程缺口已经闭合。
+- 上线前M0报告：`records/reports/20260813-REPORT-production-readiness-m0.md`。Gate A已通过；Gate B受后端磁盘容量阻塞，下一步必须取得具体治理动作授权。
+- 上线前M1记录：`records/deployments/20260813-DEPLOY-genb-whitelist-jar-and-log-governance.md`。23个旧JAR和项目专用日志轮转已完成；白名单治理不足以达到容量水位，下一步只能扩容，不得清理其他项目。
+
+## 任务：统一登录超时恢复与三项目线上验证
+
+- 日期：2026-08-10
+- 当前状态：已完成。统一登录 12 秒超时定位为后端服务器根分区 100% 后 GenB Java 进程卡死；释放归档日志和缓存空间后，使用现有脚本精确重启 GenB。浏览器真实登录返回 200，GenB、GenC、GenO 连续三轮访问和健康检查均通过。
+- 变更边界：未修改数据库、Nginx 配置、部署包和其他项目容器；删除了归档 systemd 日志、DNF 缓存和无容器引用的悬空镜像。
+- 剩余风险：后端根分区仍为 98%，需要后续按业务归属清理 Docker 镜像/卷、构建产物和历史备份。
+- Bug：`records/bugs/20260810-BUG-genesis-login-timeout-disk-full.md`
+- 部署记录：`records/deployments/20260810-DEPLOY-genb-login-recovery-and-project-verification.md`
+
+## 任务：三个核心组件独立服务收敛
+
+- 计划：`records/plans/20260805-PLAN-three-core-component-service-convergence.md`
+- 架构决定：十四个核心组件分别提供独立公共服务；五个系统只作为GenB分类。稳定code以当前GenB代码为真源。
+- 开发范围：优先完善`SHORT_TERM_MEMORY`、`PLANNING_REASONING`和`LONG_TERM_MEMORY`中的Conversation Memory；Knowledge Base只定义内部Adapter合同，由同事实现。
+- 当前状态：M0-M5已完成，Gate A-F全部通过。三个组件分别作为独立公共服务，由GenB登记、配置、绑定和签发组件会话；短期、长期会话记忆、规划与推理均通过专项、相关全量、Manifest/OpenAPI一致性和真实浏览器自然语言验收。18714使用一次性授权码、Redis服务端会话和HttpOnly Cookie接入统一门户；9100旧`/core-agent/`仅保留`410 Gone`墓碑，不再代理或提供第二套页面。M5验收同时保留统一登录识别修复和`riskLevel=UNKNOWN`保守归一化修复。完成报告：`records/reports/20260806-REPORT-three-core-component-service-convergence-m5.md`。
+- 边界：保护当前脏工作树；仅本地开发和本地验收；不操作服务器或服务器数据库。
+
+## 任务：18714非技术用户对话式核心能力验收
+
+- 计划：`records/plans/20260803-PLAN-conversational-core-capability-acceptance.md`
+- 目标：把当前工程实验台改为普通用户可理解的对话界面；用户只需聊天和点击自然语言建议，不填写Task ID、Session ID、JSON或组件操作码。
+- 交互：三个入口分别表达“记住本次交流”“跨会话记住我”“一步步生成Skill”；每个入口以欢迎语、连续问答、阶段提示、结果卡片完成测试，技术证据收进折叠详情。
+- 当前状态：已完成。主页面改为三个自然语言对话场景，内部自动维护测试标识；每个场景新增按统一登录用户隔离的Redis对话历史，可新建、切换、刷新恢复旧对话。长期记忆已用两个可见的独立对话完成真实召回，不再用分隔线伪装换会话。短期两轮记忆、Skill多轮澄清和异步回复隔离保持通过。自动化`59 passed`，完成报告：`records/reports/20260803-REPORT-conversational-core-capability-acceptance.md`。
+- 边界：保留三个能力入口和服务端会话安全；不操作服务器及服务器数据库；不覆盖当前工作树已有修改。
+
+## 任务：18714核心组件独立测试工作台
+
+- 计划：`records/plans/20260803-PLAN-customer-agent-separated-component-test-workbench.md`
+- 目标：在`http://localhost:18714/`把短期记忆、长期记忆、规划与推理测试拆成三个独立工作区；每区只展示自己的输入、调用步骤、结果和判定标准。
+- 成功标准：长期记忆可独立执行“写入提取→跨Session检索”；短期记忆可独立执行“首轮提交→同任务召回”；规划与推理可独立执行`ANALYZE/CONVERSE/GENERATE/VALIDATE/REVISE`；三者共用统一门户HttpOnly会话但不共用测试表单或结果区。
+- 执行方式：先建立页面分区和受保护组件测试HTTP接口的失败测试，再按短期、长期、规划纵向切片逐项实现；最后更新逐点击手册并用本地浏览器验收。
+- 当前状态：已完成M0-M5。三个工作区和四个受保护Interface已上线；短期记忆两轮召回、长期记忆提取/跨Session检索、规划ANALYZE均通过真实Chrome验收。Runtime新增可配置JSON Object结构化输出并保留本地Schema校验；本地长期记忆发布配置已修正为`memory-extraction-default`。自动化结果：测试智能体53项、Runtime 45项、Control System 54项通过（另3项因外部环境条件跳过）。完成报告：`records/reports/20260803-REPORT-customer-agent-separated-component-test-workbench.md`。
+- 边界：不操作服务器或服务器数据库；不在浏览器暴露Session Grant、服务凭证、Actor Token或Provider密钥；保留现有统一登录与综合客户智能体接口。
+
+## 任务：长期记忆组合架构与对话记忆开发
+
+- 计划：`records/plans/20260803-PLAN-long-term-memory-composition-and-conversation-memory.md`
+- 目标：保持固定`LONG_TERM_MEMORY`组件和单一智能体绑定，内部明确区分Conversation Memory与Knowledge Base Memory；本轮完成现有对话记忆的来源建模、检索筛选和对外合同。
+- 状态：本轮已完成。M0领域与基线、M1来源合同、M2来源筛选、M3 PostgreSQL合同均完成；先后取得缺失`sourceType`、非法`sourceTypes`和空来源筛选的红色证据，再实现转绿。Control System全量`54 passed, 3 skipped`，测试智能体全量`45 passed`；跳过项仅为未配置的本地真实PostgreSQL/Redis环境测试。M4更正/反馈与M5知识库Adapter另立合同后继续。
+- 边界：本轮不伪造Knowledge Base Adapter已可用，不操作服务器或服务器数据库。
+
+## 任务：18714客户智能体页面滚动逻辑与UI优化
+
+- 现象：生成长Skill后滚动页面，浏览器窗口、对话区、Skill预览和右侧任务栏出现多重滚动；输入框获取焦点时可将整个应用推离视口，导致左栏提前结束和底部大面积空白。
+- 成功标准：桌面端文档本身不滚动；左栏、工作区和输入区始终位于同一动态视口；对话、Skill正文和任务栏各自只在需要时内部滚动；长内容生成后自动定位到最新结果；窄屏仍可用。
+- 设计方向：深青控制台 + 纸感内容区，保留现有品牌识别，统一层级、字号、阴影、边界和滚动条。
+- 当前状态：已完成。修复了文档级外层滚动和Grid自动排版导致的工作台高度折半；长Skill渲染后滚动延后到当前帧全部DOM插入完成后执行。完成深青控制台/纸感内容区的宽度、层级、阴影、字号、滚动条和动态视口优化。页面专项20项、Python全量45项通过；真实Chrome桌面视口中工作台、右栏和输入区底部全部与视口底部对齐，文档`scrollY=0`；窄屏由workbench内部滚动且输入区保持sticky。
+
+## Bug：18714缺失智能体会话时未自动进入统一登录
+
+- 现象：统一门户已登录，直接访问`http://localhost:18714/`时页面只显示“请先通过统一门户登录后使用智能体”，没有按既定SSO合同自动跳转。
+- 成功标准：无有效智能体客户会话时，`GET /`返回`303 -> /auth/login`；有效会话时正常返回客户页面；手动登录链路和退出链路不回归。
+- 执行方式：先增加失败HTTP测试，再修复根路由会话门禁，最后运行Python专项/全量与真实Chrome验收。
+- 当前状态：已完成。红色基线稳定复现`GET /`错误返回200；修复后无会话返回`303 -> /auth/login`，有效会话仍返回客户页面。`tests/test_web.py` 17项、Python全量42项通过；本地18714已重启且健康为`UP`。Chrome新建自动化标签的`127.0.0.1 -> localhost`跨主机回调被浏览器扩展拦截为`ERR_BLOCKED_BY_CLIENT`，未计为浏览器全链路通过；原有Chrome有效会话刷新已通过。
+
+## 临时硬性约束：演示冻结
+
+- 冻结时间：2026-07-31 当前时间至 2026-08-01 23:59（Asia/Shanghai）。
+- 冻结期间禁止连接、部署、重启、修改或清理服务器，禁止读写服务器数据库。
+- 仅允许本地代码开发、本地数据库操作和本地服务验证；即使本地验收通过，也不得向服务器发布。
+- 2026-08-02 00:00 后该临时约束自动过期；恢复服务器操作前仍需重新核对用户授权、服务器状态和部署范围。
+
+## 任务：独立智能体访问入口与统一门户SSO改造
+
+详细计划：`records/plans/20260731-PLAN-independent-agent-entry-and-portal-sso.md`
+
+当前状态：2026-08-03已完成M0-M8并通过Gate A-D。18714是客户智能体唯一入口；9100旧同源代理返回410且不再提供智能体页面。Java 147项、客户端41项、Python 41项、中英文构建、真实HTTP安全矩阵和浏览器登录/刷新/聊天/退出均通过。完成报告：`records/reports/20260803-REPORT-independent-agent-entry-and-portal-sso.md`。
+
+### 暂停快照（2026-07-31 17:58，Asia/Shanghai）
+
+- M2已实现一次性授权码/会话授权合同、Redis Hash存储、60秒Code、原子消费、8小时Session Grant、服务凭证校验、精确回调校验和注销撤销；支持本地实际智能体状态`AUTHORIZED + RUNNING`，同时兼容`PUBLISHED + RUNNING`。
+- M2已新增Session Grant解析域逻辑：必须同时验证服务凭证、Grant所属智能体、用户启用/未锁定状态及当前智能体权限。`AgentSsoServiceTest`最新3项通过。
+- M2尚未完成：安全审计事件未接入；带密码的真实Redis并发消费测试仍因未提供`GENB_TEST_REDIS_PASSWORD`而跳过；组件会话Controller/Security尚未接通Session Grant。
+- M3已实现18714登录跳转、state校验回调、Redis服务端会话、不透明`HttpOnly + SameSite=Lax` Cookie、最小会话查询、聊天Cookie鉴权和注销撤销；浏览器脚本不再读取或发送Genesis/GenB LocalStorage Bearer Token。
+- 独立智能体完整测试最新结果：`36 passed`。隔离测试环境位于`D:\code\opencode\genb\.venv-control-agent`，安装记录已写入`D:\default\Documents\install_download_log.md`。
+- 可编辑安装生成了未跟踪目录`control-system-test-agent/src/genb_control_system_test_agent.egg-info/`；这是本地测试构建产物，不是交付源码，恢复后应在确认路径后清理或加入合适忽略规则。
+- 当前测试先行停点：已新增`ComponentSessionControllerTest`，用于要求`X-Agent-Session-Grant`在无浏览器Bearer Token时解析用户；该测试尚未运行，生产`ComponentSessionController`也尚未接线，因此此刻Java全量并非已验证绿灯。
+- 当前18714聊天仍临时把Session Grant放进现有`user_token`参数，`GenBClient`仍按Bearer发送；恢复后必须先把它改为专用`X-Agent-Session-Grant`头并让后端Controller显式分流，不能把此中间态用于验收。
+- 该暂停快照记录时未启动、停止或重启任何本地演示服务；9100旧同源代理入口当时仍保留，现已在Gate C后删除。
+
+恢复时第一步：运行新增`ComponentSessionControllerTest`取得红色证据，然后接通Controller/Security与Python专用Session Grant头；之后补M2审计和真实Redis原子测试。只有M2、M3全部通过并完成18714真实登录/刷新/聊天/退出验收后，才评估Gate B。
+
+### 1. 目标
+
+- 将客户智能体唯一入口从9100旧同源代理切换为智能体自行托管的`http://localhost:18714/`。
+- 通过一次性授权码、服务端Redis会话和HttpOnly Cookie接入9100统一门户，不跨Origin共享LocalStorage Token。
+- GenB继续管理智能体权限、服务凭证、核心组件绑定和访问地址；智能体独立提供页面、登录会话和聊天接口。
+- 新入口验收通过后删除9100旧代理和旧登录逻辑，不保留双入口。
+
+### 2. 执行顺序
+
+- [x] M0：建立9100成功路径和18714跨Origin登录失败的自动化基线。
+- [x] M1：固化SSO合同、威胁模型、错误码、TTL、回调白名单、Cookie和日志脱敏规则。
+- [x] M2：实现GenB一次性授权码、智能体权限/状态校验、服务凭证兑换、Redis原子消费和脱敏审计；负向安全矩阵通过，真实Redis并发消费仅一个成功。
+- [x] M3：实现并真实验收18714登录/回调/退出、Redis服务端会话、HttpOnly Cookie及聊天接口会话鉴权。
+- [x] M4：实现并真实验收统一门户智能体SSO中转和统一退出。
+- [x] M5：增加`accessUrl/callbackUrl`并将GenB“访问智能体”改为跳转独立地址。
+- [x] M6：删除9100旧同源代理、旧链接和跨Origin LocalStorage兑换逻辑，启动脚本只输出18714。
+- [x] M7：完成Java/Vue/Python、真实HTTP和浏览器登录/权限/聊天/退出矩阵验收。
+- [x] M8：更新设计、开发、操作文档、报告、Changelog和索引，精确核对变更。
+
+### 3. 完成标准
+
+- [x] 已登录门户时通过智能体入口进入18714，未登录时登录后返回18714。
+- [x] Token和服务凭证不进入URL、LocalStorage、普通Cookie、页面、日志或Git。
+- [x] 授权码一次性、短期有效并绑定用户、agent、state和精确回调；重放和篡改失败。
+- [x] 刷新保持智能体会话，退出后18714和GenB受保护地址均不可直接进入。
+- [x] 短期记忆、规划与Runtime真实调用继续受服务凭证、绑定、scope和Actor Token门禁。
+- [x] 9100旧智能体入口、代理和文档引用全部删除，不存在新旧两个版本。
+- [x] 只完成本地开发和验收，未操作服务器及服务器数据库。
+
+## 任务：规划与推理动态需求澄清及客户智能体体验重构
+
+详细计划：`records/plans/20260731-PLAN-planning-dynamic-clarification-and-core-agent-ux.md`
+
+### 1. 目标
+
+- 将规划与推理组件从“固定三问 + 当前消息关键词判断”改为“任务级需求状态 + 内部受控检索 + 大模型动态追问 + Skill生成/校验/版本”。
+- 同一`taskId`跨多轮、跨`sessionId`累计用户已确认需求，不重复询问已回答问题，不把模型推断伪装为用户事实。
+- 简单且信息完整的需求直接生成Skill；复杂需求检索已审核模板、组件Interface、授权HTTP API/MCP/SDK和开发规范后再生成。
+- 优化或重构客户智能体任务页面，使需求澄清、进度、问题回答和Skill结果对非开发用户清晰可用。
+
+### 2. 执行顺序
+
+- [x] M0：补充计划、确认现状基线，并以失败测试复现固定三问、多轮信息丢失和页面关键交互问题。
+- [x] M1：新增任务级需求草稿、事实来源/确认状态、问题状态和持久化；实际DDL不创建物理外键。
+- [x] M2：新增可替换的规划知识检索Interface及一期本地已审核模板/规范Adapter，为未来Tool Registry接入保留Seam。
+- [x] M3：接入结构化需求分析提示词和动态追问，删除固定问题主逻辑及关键词清空逻辑。
+- [x] M4：增强简单/复杂Skill生成提示词、授权资源引用、确定性校验、有限修复和DRAFT版本保存。
+- [x] M5：调整客户智能体编排，使规划对话按`taskId`持续推进，并返回可展示的需求进度、问题和参考信息。
+- [x] M6：重构客户页面信息架构、会话状态、错误/加载/空状态、问题交互、Skill结果和响应式布局。
+- [x] M7：运行规划服务、测试智能体及页面自动化测试，并在当时的9100旧同源代理入口完成真实浏览器验收。
+- [x] M8：更新设计、开发、操作文档、报告和索引，精确检查变更范围。
+
+完成报告：`records/reports/20260731-REPORT-planning-dynamic-clarification-and-core-agent-ux.md`。
+
+### 3. 验收标准
+
+- 用户不使用“输入为/输出为/约束”等固定句式时，系统仍能从自然语言正确累计已确认需求。
+- 用户分多轮回答时只追问真实缺口；每轮最多三个针对当前业务的问题，不重复固定三问。
+- 简单Skill可直接生成；复杂Skill能引用已授权模板、组件或工具，并拒绝把未授权工具写为可执行声明。
+- 跨`sessionId`但相同`taskId`可继续，换`taskId`不串数据；未绑定组件、无凭证和模型失败路径保持门禁。
+- 页面能明确展示当前任务、已确认信息、待回答问题、生成进度、Skill草稿和可理解错误，不暴露凭证或原始思维链。
+- 自动化测试、真实本地HTTP和当时的9100旧同源代理入口浏览器操作全部通过并留存验收证据。
+
+### 4. 当前约束
+
+- 本任务只允许本地代码、数据库和服务验证；演示冻结期间不连接、不读取、不修改、不部署服务器及服务器数据库。
+- 规划与推理组件只生成、校验和修订Skill，不执行Skill、HTTP API或MCP工具。
+- 一期检索仅使用管理员审核或系统内已发布资料；不允许运行时任意互联网搜索。
+- 设计可表达数据关系，实际数据库表和迁移脚本不创建物理外键。
+
 ## 任务：GenB 数据库本地化与本地测试智能体清理
 
 ### 1. 目标
@@ -37,7 +226,7 @@
 ### 2. 当前进度
 
 - M0-M7已完成：独立客户页面、真实模型、短期记忆、规划Skill、GenB三组件绑定、长期服务凭证、正反向验收和文档全部完成。
-- 当前本地入口：`http://localhost:9100/core-agent/`；智能体自身服务为`127.0.0.1:18714`，9100仅做统一登录态下的反向代理。
+- 当前本地唯一入口：`http://localhost:18714/`；9100旧同源反向代理已删除。
 - 当前真实运行：短期记忆`18705`、规划`18712`、Runtime推理`18704`、客户智能体`18714`；GenB后端`8581`、统一入口`9100`。
 - 报告：`records/reports/20260730-REPORT-customer-ready-core-component-agent.md`。
 

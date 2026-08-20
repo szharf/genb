@@ -1,6 +1,6 @@
 # Gen-B 项目索引
 
-更新时间：2026-07-30
+更新时间：2026-08-20
 
 这是 `D:\code\opencode\genb` 的项目级索引。目标是让人和 AI 在大项目中快速定位上下文，减少误改、重复搜索和 token 消耗。
 
@@ -33,6 +33,7 @@
 | `docs/development/BACKEND_API.md` | 后端 Controller 和 API 分组文档。 |
 | `docs/development/API_CONTRACTS.md` | 后端 API 契约、请求/响应结构和关键 DTO。 |
 | `docs/development/CORE_COMPONENT_PLATFORM_DEVELOPMENT_GUIDE.md` | 核心组件平台全栈开发总纲：GenB管理控制面、五大系统/14组件执行面、智能体接入编排、自建Inference Engine、公共契约、测试和全量交付。 |
+| `docs/development/PLANNING_REASONING_DYNAMIC_SKILL_IMPLEMENTATION.md` | 规划与推理动态需求提示词、任务草稿、受控检索、模型输出规范化、Skill生成与客户页面实现。 |
 | `docs/development/RUNTIME_SYSTEM_INFERENCE_ENGINE_IMPLEMENTATION_GUIDE.md` | Runtime System最小Inference Engine一期专项：统一模型Interface、Direct/Alaya/Fake Adapter、身份、凭证、路由、结构化输出、流式、Embedding、测试和部署。 |
 | `docs/development/CONTROL_SYSTEM_MEMORY_IMPLEMENTATION_GUIDE.md` | Control System长短记忆一期专项：代码架构、身份、数据、Runtime Inference Adapter、测试、部署和可复用系统模板。 |
 | `docs/operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md` | 长短期记忆独立测试台与测试智能体逐点击操作手册，说明服务启动、服务凭证、A/B 隔离、完整矩阵、证据与排障。 |
@@ -56,7 +57,22 @@
 | `context/code-statistics.md` | 核心项目代码量、文档量和文件量统计。 |
 | `records/README.md` | 计划、报告、Bug、部署、决策等历史记录入口。 |
 | `records/RECORDS_INDEX.md` | 历史记录反向索引，按主题查计划、报告、Bug、部署和决策。 |
+| `records/templates/PLAN_TEMPLATE.md` | 标准任务计划模板：基础结构及复杂架构任务的arc42/KEP/MADR扩展，覆盖失败基线、决策、运行时、Interface、安全、测试、Gate与回滚。 |
+| `records/reports/20260806-REPORT-three-core-component-service-convergence-m5.md` | 短期、长期会话记忆、规划与推理独立服务收敛的Gate F完成证据。 |
 | `CLEANUP_GUIDE.md` | 当前目录下可删除、谨慎删除、不可删除内容说明。 |
+
+## 当前工作树
+
+| 层级 | 当前结论 | 唯一入口 |
+|---|---|---|
+| 当前生产任务 | 仅 GenB 部署停在 M0 Gate A；后端磁盘达到 95% 硬停止线，客户端还依赖本轮不部署的 `/agents/{agentId}/`，服务器零修改。 | `records/reports/20260818-REPORT-genb-only-deployment-m0.md` |
+| 当前执行计划 | 只允许 GenB 后端、四套静态产物和必要 SQL；网关、Redis、核心组件与智能体均排除。 | `records/plans/20260818-PLAN-genb-only-capacity-exception-production-deployment.md` |
+| 已完成本地实现 | 统一数据面网关 M0-M5、合同、GenB 控制面、管理端、18714 与三组件本地 Gate A-F 已完成。 | `records/reports/20260813-REPORT-unified-data-plane-gateway-m5.md` |
+| 生产上线前置 | GenB 白名单磁盘治理已完成但容量仍不达标；不得清理其他项目，后续只能先扩容再复核。 | `records/deployments/20260813-DEPLOY-genb-whitelist-jar-and-log-governance.md` |
+| 同事源码交付 | 模块、启动、配置、数据库与打包排除项说明。 | `gen-b/项目说明.md` |
+| 初始化数据库 | GenB 当前 Entity 对应的 PostgreSQL 建表与索引脚本。 | `gen-b/创建所需表.sql` |
+
+阅读顺序：`CURRENT_TASKS.md` 当前任务 → 对应计划 → 对应报告/部署记录 → 定向代码。历史任务只通过 `records/RECORDS_INDEX.md` 反查。
 
 ## 核心项目
 
@@ -64,11 +80,13 @@
 |---|---|---|
 | 智能体 CLI | `bank-agent-project/bank-agent-cli` | 生成标准智能体项目的脚手架。 |
 | 智能体 Runtime/SDK | `bank-agent-project/bank-agent-runtime` | 智能体运行时底座和 SDK。 |
-| Runtime System服务 | `runtime-system-service` | 核心组件平台新执行面；Iteration 1完成Fake纵向切片，Iteration 2完成离线可验证的Direct Provider与配置路由主链路，不依赖旧Runtime SDK。 |
-| Control System服务 | `control-system-service` | Control System执行面；当前完成Short-term Memory、Redis、GenB内省/JWKS身份接入和真实A/B隔离联调。 |
-| 独立短期记忆参考服务 | `short-term-memory-service` | 不依赖旧SDK的短期记忆逻辑服务样例；提供5个HTTP操作、四维隔离、TTL、幂等、脱敏及内存/Redis Adapter，本轮未接入GenB运行链。 |
+| Runtime System服务 | `runtime-system-service` | 核心组件平台模型执行面；提供统一推理、结构化输出、路由与凭证校验，18714通过它完成真实模型回答。 |
+| Control System服务 | `control-system-service` | Control System接入与组合层；通过GenB签发的Actor Token/组件会话连接独立短期、长期与规划服务，不作为组件公共真源。 |
+| 独立短期记忆服务 | `short-term-memory-service` | `SHORT_TERM_MEMORY`唯一公共Implementation真源；Interface 1.1.0，提供四维隔离、TTL、幂等、脱敏及内存/Redis Adapter。 |
+| 独立长期记忆服务 | `long-term-memory-service` | `LONG_TERM_MEMORY`唯一公共Implementation真源；Interface 1.0.0，当前实现Conversation Memory，Knowledge Base通过内部Adapter由同事接入。 |
 | 规划与推理引擎服务 | `planning-reasoning-service` | 固定组件`PLANNING_REASONING`的一期独立逻辑服务；提供需求澄清、简单/复杂Skill生成、MCP声明、校验、版本修订、GenB身份和PostgreSQL持久化。 |
-| Control System测试智能体 | `control-system-test-agent` | 单代码多逻辑实例的薄HTTP调用方；用于组件会话、长短记忆、隔离与失败矩阵自动验收，不依赖旧Runtime SDK。 |
+| Control System测试智能体 | `control-system-test-agent` | 18714客户唯一入口；通过一次性授权码、Redis服务端会话和HttpOnly Cookie接入统一门户，以自然语言验收短期、长期和规划能力。 |
+| 统一数据面网关 | `genb-data-plane-gateway` | 智能体访问与核心能力调用的统一数据面，提供身份交换、会话、路由、Adapter、缓存失效和审计；当前仅完成本地实现与验收，未生产部署。 |
 | Gen-B 后端 | `gen-b/gen-b-backend` | 登录、用户、角色、权限、智能体、授权申请、审批、状态、部署管理，以及核心组件目录、配置、绑定、治理、服务凭证和短时组件会话控制面（Iteration 5）。 |
 | Gen-B 客户端 | `gen-b/gen-b-client` | 业务用户门户：我的智能体、智能体市场、我的申请、个人中心。 |
 | Gen-B 管理端 | `gen-b/gen-b-console` | 管理端/运维管控前端。 |

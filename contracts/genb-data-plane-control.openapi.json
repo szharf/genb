@@ -1,0 +1,201 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "GenB Data Plane Control Interface", "version": "1.0.0" },
+  "paths": {
+    "/api/v1/internal/data-plane/config/version": {
+      "get": { "operationId": "getDataPlaneConfigVersion", "responses": { "200": { "description": "Latest monotonic config version and ETag" } }, "security": [{ "gatewayMachineIdentity": [] }] }
+    },
+    "/api/v1/internal/data-plane/config/snapshot": {
+      "get": { "operationId": "getDataPlaneConfigSnapshot", "responses": { "200": { "description": "Complete published snapshot without secret values", "content": { "application/json": { "schema": { "$ref": "./data-plane-config-snapshot.schema.json" } } } } }, "security": [{ "gatewayMachineIdentity": [] }] }
+    },
+    "/api/v1/internal/data-plane/identity/exchange": {
+      "post": {
+        "operationId": "exchangeDataPlaneAuthorizationCode",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DataPlaneIdentityExchangeRequest" } } } },
+        "responses": {
+          "200": { "description": "Single-use code exchanged for a gateway session subject", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DataPlaneSessionSubject" } } } },
+          "400": { "description": "Unsupported schema or invalid request" },
+          "401": { "description": "Invalid, expired, replayed or wrong-client code" }
+        },
+        "security": [{ "gatewayMachineIdentity": [] }]
+      }
+    },
+    "/api/v1/internal/data-plane/identity/revoke": {
+      "post": {
+        "operationId": "revokeDataPlaneGatewaySession",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DataPlaneIdentityRevokeRequest" } } } },
+        "responses": {
+          "204": { "description": "Gateway session grant atomically revoked" },
+          "400": { "description": "Unsupported schema or invalid request" },
+          "401": { "description": "Invalid, expired, replayed or wrong-agent session grant" }
+        },
+        "security": [{ "gatewayMachineIdentity": [] }]
+      }
+    },
+    "/api/v1/internal/data-plane/actor-token": {
+      "post": {
+        "operationId": "issueDataPlaneActorToken",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DataPlaneActorTokenRequest" } } } },
+        "responses": {
+          "200": { "description": "Short-lived Actor Token for one active binding", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DataPlaneActorToken" } } } },
+          "400": { "description": "Unsupported schema or invalid request" },
+          "401": { "description": "Invalid gateway session grant" },
+          "403": { "description": "Authorization or binding denied" }
+        },
+        "security": [{ "gatewayMachineIdentity": [] }]
+      }
+    },
+    "/api/v1/internal/data-plane/audits:batch": {
+      "post": {
+        "operationId": "appendDataPlaneAuditBatch",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DataPlaneAuditBatchRequest" } } } },
+        "responses": {
+          "202": { "description": "Redacted audit batch accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DataPlaneAuditBatchResult" } } } },
+          "400": { "description": "Audit schema rejected" }
+        },
+        "security": [{ "gatewayMachineIdentity": [] }]
+      }
+    },
+    "/internal/cache/invalidate": {
+      "post": {
+        "operationId": "invalidateDataPlaneCache",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DataPlaneInvalidationRequest" } } } },
+        "responses": {
+          "202": { "description": "Invalidation applied", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DataPlaneInvalidationResult" } } } },
+          "400": { "description": "Invalid invalidation event" },
+          "401": { "description": "GenB machine identity rejected" },
+          "503": { "description": "Requested version could not be loaded" }
+        },
+        "security": [{ "genbMachineIdentity": [] }]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "gatewayMachineIdentity": { "type": "http", "scheme": "bearer" },
+      "genbMachineIdentity": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "DataPlaneInvalidationRequest": {
+        "type": "object",
+        "required": ["schemaVersion", "scope", "configVersion"],
+        "properties": {
+          "schemaVersion": { "const": "1.0" },
+          "scope": { "enum": ["CONFIG", "CAPABILITY", "SESSION", "USER_AGENT", "AGENT"] },
+          "configVersion": { "type": "integer", "minimum": 1 },
+          "tenantId": { "type": "string", "minLength": 1 },
+          "userId": { "type": "string", "minLength": 1 },
+          "agentId": { "type": "string", "minLength": 1 },
+          "sessionId": { "type": "string", "minLength": 1 },
+          "capabilityCode": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }
+        },
+        "additionalProperties": false
+      },
+      "DataPlaneInvalidationResult": {
+        "type": "object",
+        "required": ["schemaVersion", "appliedConfigVersion"],
+        "properties": {
+          "schemaVersion": { "const": "1.0" },
+          "appliedConfigVersion": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": false
+      },
+      "DataPlaneIdentityExchangeRequest": {
+        "type": "object",
+        "required": ["schemaVersion", "code", "agentId", "callbackUrl", "state", "sessionId"],
+        "properties": {
+          "schemaVersion": { "type": "string", "enum": ["1.0"] },
+          "code": { "type": "string", "minLength": 32, "maxLength": 256 },
+          "agentId": { "type": "string", "minLength": 1, "maxLength": 50 },
+          "callbackUrl": { "type": "string", "format": "uri", "maxLength": 2048 },
+          "state": { "type": "string", "minLength": 32, "maxLength": 128 },
+          "sessionId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$", "maxLength": 128 }
+        },
+        "additionalProperties": false
+      },
+      "DataPlaneSessionSubject": {
+        "type": "object",
+        "required": ["schemaVersion", "sessionGrant", "tenantId", "userId", "username", "agentId", "sessionId", "expiresAt"],
+        "properties": {
+          "schemaVersion": { "type": "string", "enum": ["1.0"] },
+          "sessionGrant": { "type": "string", "minLength": 32 },
+          "tenantId": { "type": "string", "minLength": 1 },
+          "userId": { "type": "integer", "minimum": 1 },
+          "username": { "type": "string", "minLength": 1 },
+          "agentId": { "type": "string", "minLength": 1 },
+          "sessionId": { "type": "string", "minLength": 1 },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      },
+      "DataPlaneIdentityRevokeRequest": {
+        "type": "object",
+        "required": ["schemaVersion", "agentId", "sessionGrant"],
+        "properties": {
+          "schemaVersion": { "type": "string", "enum": ["1.0"] },
+          "agentId": { "type": "string", "minLength": 1, "maxLength": 50 },
+          "sessionGrant": { "type": "string", "minLength": 32, "maxLength": 256 }
+        },
+        "additionalProperties": false
+      },
+      "DataPlaneActorTokenRequest": {
+        "type": "object",
+        "required": ["schemaVersion", "sessionGrant", "agentId", "sessionId", "capabilityCode"],
+        "properties": {
+          "schemaVersion": { "type": "string", "enum": ["1.0"] },
+          "sessionGrant": { "type": "string", "minLength": 32, "maxLength": 256 },
+          "agentId": { "type": "string", "minLength": 1, "maxLength": 50 },
+          "sessionId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$", "maxLength": 128 },
+          "capabilityCode": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "maxLength": 64 }
+        },
+        "additionalProperties": false
+      },
+      "DataPlaneActorToken": {
+        "type": "object",
+        "required": ["schemaVersion", "actorToken", "expiresAt", "capabilityCode", "implementationCode", "bindingVersion"],
+        "properties": {
+          "schemaVersion": { "type": "string", "enum": ["1.0"] },
+          "actorToken": { "type": "string", "minLength": 1 },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "capabilityCode": { "type": "string", "minLength": 1 },
+          "implementationCode": { "type": "string", "minLength": 1 },
+          "bindingVersion": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": false
+      },
+      "DataPlaneAuditBatchRequest": {
+        "type": "object",
+        "required": ["schemaVersion", "events"],
+        "properties": {
+          "schemaVersion": { "type": "string", "enum": ["1.0"] },
+          "events": { "type": "array", "minItems": 1, "maxItems": 100, "items": { "$ref": "#/components/schemas/DataPlaneAuditEventRequest" } }
+        },
+        "additionalProperties": false
+      },
+      "DataPlaneAuditEventRequest": {
+        "type": "object",
+        "required": ["eventId", "occurredAt", "requestId", "eventType", "outcome", "actorSubjectHash"],
+        "properties": {
+          "eventId": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "occurredAt": { "type": "string", "format": "date-time" },
+          "requestId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "eventType": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "maxLength": 64 },
+          "outcome": { "type": "string", "enum": ["SUCCESS", "DENIED", "ERROR"] },
+          "actorSubjectHash": { "type": "string", "pattern": "^sha256:[a-f0-9]{32,64}$", "maxLength": 71 },
+          "agentId": { "type": "string", "maxLength": 50 },
+          "capabilityCode": { "type": "string", "maxLength": 64 }
+        },
+        "additionalProperties": false
+      },
+      "DataPlaneAuditBatchResult": {
+        "type": "object",
+        "required": ["schemaVersion", "accepted"],
+        "properties": {
+          "schemaVersion": { "type": "string", "enum": ["1.0"] },
+          "accepted": { "type": "integer", "minimum": 1, "maximum": 100 }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -59,6 +59,6 @@
 - 统一登录：`http://localhost:9100/portal/login`
 - 短期记忆测试智能体：`http://localhost:9100/agents/standalone-memory-test-agent/chat`
 - 规划与推理测试智能体：`http://localhost:9100/agents/standalone-planning-test-agent/planning`
-- 客户核心组件智能体：`http://localhost:9100/core-agent/`
+- 客户核心组件智能体：现使用`http://localhost:18714/`（报告生成时曾使用9100旧同源代理）
 
 9100 是统一登录和同源入口；三个智能体自身仍分别运行在独立服务端口，9100 只做前端入口和反向代理。

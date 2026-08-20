@@ -3,8 +3,42 @@ import json
 import httpx
 import pytest
 
-from control_system_test_agent.clients import ControlSystemClient, GenBClient, PlanningReasoningClient, StandaloneShortTermMemoryClient
+from control_system_test_agent.clients import (
+    ControlSystemClient, GatewayCapabilityClient, GenBClient, PlanningReasoningClient,
+    StandaloneShortTermMemoryClient,
+)
 from control_system_test_agent.errors import RemoteCallError
+
+
+@pytest.mark.asyncio
+async def test_gateway_capability_client_uses_only_unified_identity_and_machine_credential() -> None:
+    requests: list[httpx.Request] = []
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"data": {"messages": []}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        result = await GatewayCapabilityClient(
+            http, "http://data-plane.local", identity_token="signed-short-identity",
+            agent_credential="agent-machine-credential",
+        ).invoke(
+            "SHORT_TERM_MEMORY", "prepareShortTermContext", {"query": "hello"},
+            request_id="req-gateway-1", conversation_id="conversation-a",
+        )
+
+    request = requests[0]
+    assert request.url == httpx.URL(
+        "http://data-plane.local/component-api/v1/capabilities/SHORT_TERM_MEMORY/operations/prepareShortTermContext:invoke"
+    )
+    assert request.headers["Authorization"] == "Bearer signed-short-identity"
+    assert request.headers["X-GenB-Agent-Credential"] == "agent-machine-credential"
+    assert "X-GenB-Actor-Token" not in request.headers
+    assert json.loads(request.content) == {
+        "schemaVersion": "1.0",
+        "context": {"requestId": "req-gateway-1", "conversationId": "conversation-a"},
+        "payload": {"query": "hello"},
+    }
+    assert result == {"data": {"messages": []}}
 
 
 @pytest.mark.asyncio

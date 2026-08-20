@@ -1,10 +1,12 @@
 # GenB 五大系统与14个核心组件总体设计暨一期记忆组件详细设计
 
+> 2026-08-05架构修订：十四个核心组件分别提供独立公共服务，五个系统只作为GenB目录分类，不再作为默认合并部署单元。稳定code、团队接入和迁移顺序以`records/decisions/20260805-ADR-fourteen-component-services-five-system-classification.md`及`docs/development/CORE_COMPONENT_SERVICE_INTEGRATION_SPEC.md`为准；本文中“五个系统服务承载多个组件”的旧部署描述已被替代。
+
 > 文档状态：评审稿（Draft）  
-> 版本：v1.2  
-> 更新时间：2026-07-23  
+> 版本：v1.3
+> 更新时间：2026-08-03
 > 适用范围：GenB 管理端、GenB 后端、五大系统、14个核心组件、核心组件测试智能体  
-> 当前有效决策：`records/decisions/20260723-ADR-control-system-component-service.md`、`records/decisions/20260723-ADR-self-hosted-inference-engine.md`  
+> 当前有效决策：`records/decisions/20260723-ADR-control-system-component-service.md`、`records/decisions/20260723-ADR-self-hosted-inference-engine.md`、`records/decisions/20260803-ADR-long-term-memory-composite-sources.md`
 > 统一术语：`CONTEXT.md`
 
 ## 0. 文档使用说明
@@ -14,7 +16,7 @@
 一期建设三个固定核心组件：
 
 1. **短期记忆/工作台**：保存一次会话内的消息、摘要和临时工作上下文，默认以 `tenantId + userId + agentId + sessionId` 隔离。
-2. **用户长期记忆**：保存用户偏好、稳定事实和用户约束，默认以 `tenantId + userId + agentId` 隔离；一期不是完整 RAG 知识库。
+2. **长期记忆/知识库**：是一个固定核心组件和一个智能体绑定；内部组合Conversation Memory与Knowledge Base Memory。Conversation Memory保存用户偏好、稳定事实和用户约束，默认以 `tenantId + userId + agentId` 隔离；Knowledge Base Memory通过Adapter接入文档、规则、案例、权限和引用能力。
 3. **推理引擎服务**：由Runtime System提供统一模型调用Interface，最小实现覆盖非流式对话、结构化输出、流式调用、Embedding、模型能力和健康；模型厂商及Alaya协议隐藏在Adapter之后。
 
 总体业务架构统一为“系统直接提供所属核心组件Interface”。一期实现为：
@@ -23,6 +25,8 @@
 Control System / control-system-service
 ├─ Short-term Memory Module + Interface
 └─ Long-term Memory Module + Interface
+   ├─ Conversation Memory Module
+   └─ Knowledge Base Memory Adapter（后续接入）
 
 Runtime System / runtime-system-service
 └─ Inference Engine Module + Interface
@@ -187,7 +191,7 @@ GenB 核心组件模块是跨五大系统的管理控制面，负责注册、配
 |---|---:|---|
 | 核心系统 | 否 | 属于企业架构标准，代码/种子数据维护。 |
 | 核心组件 | 否 | 固定 14 项；允许启用、配置和升级，不允许业务用户创建新类别。 |
-| 组件实现 | 后续可允许管理员注册 | 例如用户长期记忆实现、未来 RAG 实现。 |
+| 组件实现 | 后续可允许管理员注册 | 长期记忆采用一个组合Implementation，内部可替换Conversation Memory Module与Knowledge Base Memory Adapter。 |
 | 配置方案/版本 | 是 | 管理员可新建草稿、发布、停用。 |
 | 智能体绑定 | 是 | 将智能体绑定到已发布配置。 |
 | 系统服务实例 | 由部署系统管理 | 不等同于组件卡片。 |
@@ -206,22 +210,22 @@ Control System / control-system-service
 
 ### 3.4 一期能力切片
 
-长期记忆组件按演进切片：
+长期记忆组件按组合能力演进，但始终保持一个组件、一个绑定和一个稳定Interface：
 
 ```text
-一期：用户长期记忆
+Conversation Memory（已实现一期）
   ├─ 用户偏好
   ├─ 稳定事实
   └─ 用户约束
 
-后续：完整 RAG 知识库
+Knowledge Base Memory（后续接入）
   ├─ 文档摄取与治理
   ├─ Embedding / Vector DB
   ├─ 检索重排与引用
   └─ 既有同事知识库系统 Adapter
 ```
 
-“完整 RAG”不是重新定义一个核心组件，而是“长期记忆/知识库”核心组件下的另一项实现能力。
+统一检索按`sourceType=CONVERSATION|KNOWLEDGE_BASE`标记来源；每条结果必须携带`sourceRef`。Knowledge Base Adapter未配置时，按该来源检索只返回空结果，不伪造内容、引用或可用状态。“完整 RAG”不是重新定义一个核心组件，而是“长期记忆/知识库”核心组件下的一项内部能力。
 
 ### 3.5 总体完成形态
 
@@ -676,7 +680,7 @@ TEST_AGENT_B → agentId=memory-test-b → credential B
 
 ### 11.4 检索用户长期记忆
 
-`POST /api/v1/control-system/long-term-memory/search`
+`POST /api/v1/long-term-memory/memories:search`
 
 请求：
 
@@ -713,7 +717,7 @@ TEST_AGENT_B → agentId=memory-test-b → credential B
 
 ### 11.5 提交长期记忆提取任务
 
-`POST /api/v1/control-system/long-term-memory/extractions`
+`POST /api/v1/long-term-memory/extractions`
 
 请求包含与短期回合相同的可信身份、`turnId`、脱敏后的用户消息和最终回答。成功返回 `202 Accepted + extractionId + QUEUED`。模型提取、schema校验、敏感过滤和置信度判断由Long-term Memory Module内部完成。
 
@@ -1775,3 +1779,18 @@ Redis 容量 ≈ 并发活跃会话 × 每会话平均消息数 × 平均消息�
 ### 30.3 文档可信度
 
 本文属于设计文档，可信度等级为B。已验证的Redis/PostgreSQL/Alaya Model Gateway状态是2026-07-23的环境快照；自建Inference Engine和Direct Provider尚未实现，实施前必须复核当前代码、真实DDL、依赖版本、Provider官方契约和服务器配置。
+
+---
+
+## 31. 2026-08-06 M5实现快照
+
+以下内容已由代码、自动化、本地运行态和浏览器验收共同验证，优先于上面的早期阶段性描述：
+
+- 五个系统只用于GenB分类；十四个组件分别提供独立公共服务。相同技术栈可以同仓或同进程管理，但不能共用公共Implementation真源。
+- 当前已完成的三个公共真源为`short-term-memory-service-v1`、`long-term-memory-service-v1`和`planning-reasoning-service-v1`；Interface分别为1.1.0、1.0.0、1.1.1。
+- GenB是控制面：管理目录、Interface、Implementation、配置、绑定、服务凭证、组件会话和审计；正常业务数据不经GenB转发。
+- `LONG_TERM_MEMORY`保持单一组件，内部组合Conversation Memory与Knowledge Base Adapter；本轮只完成会话记忆，知识库由同事按Adapter合同交付。
+- 18714是客户唯一入口，通过门户一次性授权码、Redis服务端会话和HttpOnly Cookie建立身份；9100旧`/core-agent/`仅返回410墓碑。
+- Runtime Inference已用于真实Skill澄清和生成；模型返回未知风险值时按保守规则归一化并继续澄清，不能造成502。
+
+本节对应完成报告`records/reports/20260806-REPORT-three-core-component-service-convergence-m5.md`，本文可信度对上述实现快照提升为A级；未完成的其余11个组件和生产门禁仍按原设计逐项复核。

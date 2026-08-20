@@ -17,11 +17,13 @@
 - `design/CLIENT_UI_DESIGN.md`：客户端 UI 设计记录。
 - `design/GENESIS_GENC_UNIFIED_AUTHORIZATION_DESIGN.md`：Genesis 统一管理 GenC 用户、平台角色和菜单权限的详细设计。
 - `design/GENB_CORE_MEMORY_COMPONENTS_DETAILED_DESIGN.md`：五大系统与14个核心组件总体设计和全量验收，并细化一期长短记忆、最小Inference Engine的Interface、数据、安全、测试、部署与回滚。
+- `design/UNIFIED_DATA_PLANE_AGENT_COMPATIBILITY.md`：统一数据面智能体兼容分类、入口收口和多用户隔离验收矩阵。
 
 ## 开发
 
 - `development/DEVELOPMENT_GUIDE.md`：开发说明。
 - `development/CORE_COMPONENT_PLATFORM_DEVELOPMENT_GUIDE.md`：整个核心组件平台开发总入口，覆盖GenB控制面、五大系统/14个组件、智能体接入、自建Inference Engine、公共契约、身份、测试、发布和全量DoD。
+- `development/CORE_COMPONENT_SERVICE_INTEGRATION_SPEC.md`：当前生效的十四个独立组件服务接入规范，定义Manifest、OpenAPI、配置Schema、身份、健康、错误、验收和团队交付边界。
 - `development/RUNTIME_SYSTEM_INFERENCE_ENGINE_IMPLEMENTATION_GUIDE.md`：Runtime System最小Inference Engine一期专项，覆盖统一模型Interface、Direct/Alaya/Fake Adapter、结构化输出、流式、Embedding、身份、凭证、测试、部署和DoD。
 - `development/CONTROL_SYSTEM_MEMORY_IMPLEMENTATION_GUIDE.md`：平台总纲下的Control System长短记忆一期专项，覆盖仓库、Module/Interface、Actor Token、Runtime Inference Adapter、迁移、Redis、提取Worker、前后端、测试、部署和回滚。
 - `development/BACKEND_API.md`：后端 API 分组。
@@ -34,6 +36,7 @@
 ## 安全
 
 - `security/PERMISSION_MATRIX.md`：页面、接口和角色权限矩阵。
+- `security/UNIFIED_DATA_PLANE_GATEWAY_THREAT_MODEL.md`：统一数据面威胁、信任区域、身份与秘密边界及Gate映射。
 
 ## 部署
 
@@ -51,7 +54,9 @@
 - `operation/CORE_MEMORY_TESTBENCH_AND_TEST_AGENT_GUIDE.md`：长短期记忆独立测试台与测试智能体详细操作、启动、凭证、隔离、验收和排障手册。
 - `operation/SHORT_TERM_MEMORY_CONTRACT_REGISTRATION_AND_STANDALONE_TEST_GUIDE.md`：短期记忆接口契约上传/粘贴/手工注册、发布、实现版本约束及独立服务Swagger逐点击测试；明确本轮暂不连通。
 - `operation/PLANNING_REASONING_SERVICE_GUIDE.md`：规划与推理引擎的启动、Swagger需求澄清、简单/复杂Skill生成、MCP声明、校验和版本修订逐步操作。
+- `development/PLANNING_REASONING_DYNAMIC_SKILL_IMPLEMENTATION.md`：动态需求澄清提示词、任务状态、受控检索、模型规范化、Skill生成门禁和客户工作台逻辑。
 - `operation/PLANNING_REASONING_GENB_AND_TEST_AGENT_GUIDE.md`：规划服务接入GenB后的管理员直测、智能体绑定测试、客户端专用测试页面和四种操作逐点击手册。
+- `operation/UNIFIED_DATA_PLANE_GATEWAY_LOCAL_ACCEPTANCE_GUIDE.md`：统一数据面本地自动化、浏览器、容器安全与清理验收指南。
 
 ## 样例
 

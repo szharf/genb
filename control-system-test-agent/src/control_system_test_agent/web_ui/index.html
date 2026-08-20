@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#073c43" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23073c43'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='36' font-family='Arial' font-weight='700' fill='%237ce8dc'%3EA%3C/text%3E%3C/svg%3E" />
   <title>GenB 智能体能力体验</title>
   <link rel="stylesheet" href="./assets/styles.css?v=20260804-1" />
 </head>
@@ -52,7 +53,7 @@
         <div class="topbar-actions">
           <span class="online-status" id="liveStatus"><i></i> 服务在线</span>
           <button class="quiet-button" id="restartButton" type="button">开始新测试</button>
-          <form action="./auth/logout" method="post"><button class="quiet-button" id="logoutButton" type="submit">退出</button></form>
+          <form action="/agents/_auth/logout" method="post"><button class="quiet-button" id="logoutButton" type="submit">退出</button></form>
         </div>
       </header>
 

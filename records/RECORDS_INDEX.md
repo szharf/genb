@@ -1,5 +1,50 @@
 # 历史记录反向索引
 
+更新时间：2026-08-20
+
+本文按主题索引 `records/` 下的历史记录，用于快速追溯背景、已做过的验证和历史结论。历史记录可信度低于当前代码；当前执行状态先看 `CURRENT_TASKS.md` 和 `PROJECT_INDEX.md` 的“当前工作树”。
+
+## 2026-08 当前工作链
+
+- `records/reports/20260818-REPORT-genb-only-deployment-m0.md`：仅 GenB部署M0本地测试与两台服务器只读复核；后端磁盘达到95%硬停止线，当前客户端又依赖未部署的`/agents/{agentId}/`入口，Gate A未通过且服务器零修改。
+- `records/plans/20260818-PLAN-genb-only-capacity-exception-production-deployment.md`：仅发布 GenB 后端、四套中英文静态产物和必要数据库迁移的容量例外计划；明确排除网关、专用 Redis、核心组件和智能体，并设置 95%/5GiB硬停止线及新旧 JAR数据库兼容 Gate。
+- `records/deployments/20260813-DEPLOY-genb-whitelist-jar-and-log-governance.md`：获批删除23个精确哈希的GenB旧JAR并安装三个GenB日志的项目专用logrotate；释放约1.42GiB，服务未重启且回归通过，但Gate B仍需云盘扩容。
+- `records/reports/20260813-REPORT-production-readiness-m0.md`：两台生产服务器系统资源与GenB白名单资产只读盘点；Gate A通过，后端根分区93%且白名单清理不足，等待M1逐项授权与后续云盘扩容。
+- `records/reports/20260813-REPORT-unified-data-plane-gateway-m5.md`：真实GenB、网关、专用Redis、18714、三个真实组件与Runtime Fake Provider同窗双用户总验收；Gate F完成并进入上线前检查。
+- `records/reports/20260813-REPORT-unified-data-plane-gateway-m5-checkpoint.md`：统一数据面网关M5阶段报告；运行工厂、容器、安全、性能、兼容清单和浏览器证据已完成，但严格Gate F仍缺GenB与三个真实组件进程同窗总验收，因此未放行上线前检查。
+- `records/reports/20260813-REPORT-unified-data-plane-gateway-m2.md`：统一访问M2的ASGI网关、Redis会话、RS256身份、机器撤销、Nginx `auth_request`、双Fake与SSE/WebSocket Gate C完成报告。
+- `records/reports/20260813-REPORT-unified-data-plane-gateway-m3.md`：核心能力调用M3的统一入口、编译期Adapter、Secret/Actor Token、双用户隔离、故障矩阵和18714统一Client Gate D完成报告。
+- `records/reports/20260813-REPORT-unified-data-plane-gateway-m4.md`：缓存与失效M4的原子快照、L1/Redis、5秒撤权、15分钟宽限、Actor Token缓存、审计背压和恢复故障注入Gate E完成报告。
+- `records/templates/PLAN_TEMPLATE.md`：项目标准任务计划模板，规定先形成失败基线、再按不可跳过Gate推进，并包含范围、交付物、验证、回滚和状态记录要求。
+- `records/plans/20260812-PLAN-unified-data-plane-gateway-implementation.md`：第一步；采用arc42、KEP与MADR混合结构，详细固定方案选择、现状/目标、信任关系、Module、运行时、Interface、数据、安全、缓存、兼容迁移、质量指标和Gate A-F，仅本地完成后才进入服务器检查。
+- `records/baselines/20260812-BASELINE-unified-data-plane-gateway-m0.md`：统一数据面网关M0的Git保护、裸端口、自有SSO、组件直连、三组件白名单和网关缺失失败基线，以及合同测试与红色安全验收入口。
+- `records/decisions/20260812-ADR-unified-data-plane-gateway.md`：以Nginx字节流代理和单数据面应用内两个深Module替代智能体常态直连；保留十四组件独立交付与稳定能力码。
+- `docs/security/UNIFIED_DATA_PLANE_GATEWAY_THREAT_MODEL.md`：统一数据面网关T01-T12威胁、信任区域、身份/秘密规则、控制措施和后续Gate映射。
+- `contracts/genb-data-plane-gateway.openapi.json`、`contracts/genb-data-plane-control.openapi.json`及配套Schema：访问、能力调用、GenB控制面、配置快照、身份Token、Adapter与统一错误的机器可读合同。
+- `records/plans/20260812-PLAN-production-readiness-inspection-and-remediation.md`：第二步；本地实现Gate F后，对现有两台服务器执行GenB白名单资源检查、磁盘与日志治理、专用Redis安全、容量及故障演练。
+- `records/plans/20260812-PLAN-unified-data-plane-gateway-production-deployment.md`：第三步；本地实现Gate F和上线检查Gate D均通过后，执行旁路部署、白名单试点、逐步迁移、单入口收口和回滚。
+- `records/reports/20260806-REPORT-three-core-component-service-convergence-m5.md`：三个核心组件独立服务收敛M5总验收、SSO运行态修复、浏览器三场景、契约一致性、安全扫描和单入口Gate F完成报告。
+- `records/plans/20260805-PLAN-three-core-component-service-convergence.md`：按标准计划模板记录十四组件独立服务架构下，短期记忆、规划与推理、长期会话记忆的假设、范围、TDD步骤、验证矩阵和Gate A-F。
+- `records/reports/20260806-REPORT-pre-m5-core-component-convergence.md`：完成Manifest安全向上升版、短期多真源原子收敛、本地PostgreSQL迁移、三组件会话和18714回归；可以开始M5，尚未执行旧入口删除。
+- `records/reports/20260806-REPORT-three-core-component-service-convergence-m3-long-term-memory.md`：M3长期Conversation Memory独立服务、GenB绑定切换、旧入口删除、本地PostgreSQL与18714跨会话Gate D验收报告。
+- `records/decisions/20260805-ADR-fourteen-component-services-five-system-classification.md`：当前有效决策：五个系统只作GenB分类，十四个核心组件分别提供独立公共服务。
+- `docs/development/CORE_COMPONENT_SERVICE_INTEGRATION_SPEC.md`：同事交付组件服务时必须提供的Manifest、OpenAPI、配置、身份、健康、错误和一致性验收规范。
+- `records/reports/20260803-REPORT-conversational-core-capability-acceptance.md`：18714从工程实验台修正为非技术用户对话式能力体验的实施与浏览器验收报告。
+- `records/plans/20260803-PLAN-conversational-core-capability-acceptance.md`：三个自然语言场景、对话Interface、TDD里程碑和完成标准。
+- `records/reports/20260803-REPORT-customer-agent-separated-component-test-workbench.md`：18714短期记忆、长期记忆、规划与推理三个独立测试工作区、Runtime结构化输出兼容和真实浏览器验收报告。
+- `records/plans/20260803-PLAN-customer-agent-separated-component-test-workbench.md`：18714核心组件独立测试工作台的Interface、安全边界、TDD Gate和验证矩阵。
+- `records/reports/20260803-REPORT-long-term-memory-composition-and-conversation-source-contract.md`：长期记忆单组件组合架构、Conversation来源合同、筛选、PostgreSQL和测试智能体客户端实施报告。
+- `records/decisions/20260803-ADR-long-term-memory-composite-sources.md`：`LONG_TERM_MEMORY`保持一个组件和绑定，内部组合Conversation Memory与Knowledge Base Memory并强制来源追踪。
+- `records/reports/20260803-REPORT-independent-agent-entry-and-portal-sso.md`：18714独立入口、一次性授权码、Redis会话、门户中转、统一退出、单入口删除和Gate A-D验收报告。
+- `records/plans/20260803-PLAN-long-term-memory-composition-and-conversation-memory.md`：将固定`LONG_TERM_MEMORY`定义为Conversation Memory与Knowledge Base Memory的组合组件，本轮完成对话记忆来源合同与筛选。
+- `records/bugs/20260803-BUG-independent-agent-missing-session-auto-login.md`：18714在智能体客户会话缺失时只显示手动登录提示，改为根入口服务端校验并自动`303 -> /auth/login`。
+- `records/bugs/20260803-BUG-customer-agent-workspace-scroll-layout.md`：18714长Skill页面的多重滚动、Grid高度失配和底部大面积空白修复，同步完成工作台UI优化。
+- `records/plans/20260731-PLAN-independent-agent-entry-and-portal-sso.md`：客户智能体从9100代理切换到18714独立入口的一次性授权码SSO、服务端会话、单入口清理和全链路验收计划。
+- `records/bugs/20260731-BUG-planning-risk-level-unknown-502.md`：规划模型返回`riskLevel=UNKNOWN`导致需求分析502的根因、保守风险归一化和真实客户页面验收。
+- `records/bugs/20260731-BUG-core-agent-unified-login-detection.md`：核心组件智能体只检查GenB Token导致统一门户已登录仍误报未登录的根因、自动兑换修复和浏览器验证。
+- `records/plans/20260731-PLAN-planning-dynamic-clarification-and-core-agent-ux.md`：任务级需求状态、受控检索、大模型动态追问、Skill生成和客户页面重构计划。
+- `records/reports/20260731-REPORT-planning-dynamic-clarification-and-core-agent-ux.md`：自然语言跨session澄清、真实Skill生成、页面重构、桌面/移动浏览器及Lighthouse验收报告。
+- `docs/development/PLANNING_REASONING_DYNAMIC_SKILL_IMPLEMENTATION.md`：规划需求分析提示词、数据隔离、模型规范化、授权门禁、Skill生成和页面逻辑实现说明。
 - `records/reports/20260731-REPORT-genb-local-database-migration-and-test-agent-cleanup.md`：服务器 GenB 数据恢复到本地 `genb_local`、真实调用验收及两个本地测试智能体的服务器事务清理记录。
 - `records/bugs/20260731-BUG-agent-name-question-marks.md`：PowerShell JSON 请求未显式使用 UTF-8，导致两个测试智能体中文字段被写成问号的根因、修复和验证。
 - `records/plans/20260730-PLAN-customer-ready-core-component-agent.md`：独立客户智能体、真实模型、短期记忆、规划Skill和GenB三组件绑定的完整实施计划。
@@ -16,10 +61,6 @@
 - `records/plans/20260730-PLAN-short-term-memory-runtime-connection-and-dual-testbench.md`：独立短期记忆服务与GenB真实联通、管理员服务直测和智能体绑定测试双路径的详细任务计划。
 - `records/reports/20260730-REPORT-short-term-memory-runtime-connection-and-dual-testbench.md`：短期记忆服务真实注册、双模式测试台、可信身份、远程开发数据和端到端验收报告。
 - `docs/operation/SHORT_TERM_MEMORY_RUNTIME_CONNECTION_AND_DUAL_TESTBENCH_GUIDE.md`：面向零基础管理员的注册结果检查、服务直测、凭证获取、智能体测试和负向测试逐点击手册。
-
-更新时间：2026-07-30
-
-本文按主题索引 `records/` 下的历史记录，用于快速追溯背景、已做过的验证和历史结论。历史记录可信度低于当前代码，仅作为线索。
 
 ## 工程知识库
 
@@ -106,6 +147,7 @@
 | 主题 | 文件 | 说明 |
 |---|---|---|
 | 部署记录入口 | `records/deployments/README.md` | 部署记录目录说明。 |
+| GenB 登录恢复与三项目线上验证 | `records/deployments/20260810-DEPLOY-genb-login-recovery-and-project-verification.md` | 后端磁盘满后的空间恢复、GenB 精确重启、统一登录和 GenB/GenC/GenO 连续验收。 |
 | 三项目本地 BAT 启动 | `records/reports/20260722-REPORT-replace-control-web-with-local-bat.md` | 撤销本地控制网页，改用 GenB、GenC、GenO 三个 BAT。 |
 | 三项目后台启停快捷方式 | `records/reports/20260722-REPORT-background-local-start-stop-shortcuts.md` | 隐藏启动、D 盘日志、PID 精准停止和桌面六个入口。 |
 | Genesis SSO Token Exchange 部署 | `records/deployments/20260709-DEPLOY-genesis-sso-exchange.md` | 前端和后端部署、token exchange 验证和回滚方式。 |
@@ -125,6 +167,10 @@
 | 主题 | 文件 | 说明 |
 |---|---|---|
 | Bug 记录入口 | `records/bugs/README.md` | Bug 记录目录说明。 |
+| Genesis 统一登录 12 秒超时与 GenB 后端磁盘满 | `records/bugs/20260810-BUG-genesis-login-timeout-disk-full.md` | 根分区 100% 导致 GenB 监听但无响应，清理归档日志和缓存、重启后恢复。 |
+| 18714缺失会话未自动登录 | `records/bugs/20260803-BUG-independent-agent-missing-session-auto-login.md` | 无有效智能体会话时根入口改为服务端`303 -> /auth/login`，保留门户SSO和HttpOnly Cookie边界。 |
+| 18714工作台滚动与高度失配 | `records/bugs/20260803-BUG-customer-agent-workspace-scroll-layout.md` | 修复隐藏登录提示后Grid错位、外层窗口滚动、长Skill定位和大面积空白，完成工作台UI优化。 |
+| 规划未知风险等级502 | `records/bugs/20260731-BUG-planning-risk-level-unknown-502.md` | 模型返回`UNKNOWN`触发严格枚举校验失败，改为保守`MEDIUM`并强制澄清。 |
 | GenC SSO callback 卡住 | `records/bugs/20260721-BUG-genc-sso-callback-stuck.md` | 公网慢连接占住唯一同步 Gunicorn worker，导致 health 与统一登录全部超时的诊断证据和处理建议。 |
 | Genesis 用户权限列表 N+1 | `records/bugs/20260720-BUG-genesis-access-users-n-plus-one-latency.md` | 10 人列表约 162 条 SQL、15 秒延迟的诊断、修复和真实接口验收。 |
 | 核心组件本地9100鉴权与菜单层级 | `records/bugs/20260723-BUG-core-component-local-9100-auth-and-menu-hierarchy.md` | 客户端与管理端Token键不一致导致目录403，以及菜单父子层级修复记录。 |
@@ -140,8 +186,10 @@ records/bugs/YYYYMMDD-BUG-主题.md
 | 主题 | 文件 | 说明 |
 |---|---|---|
 | 决策记录入口 | `records/decisions/README.md` | ADR 目录说明。 |
+| 长期记忆单组件组合来源 | `records/decisions/20260803-ADR-long-term-memory-composite-sources.md` | 当前有效决策：一个`LONG_TERM_MEMORY`绑定内组合Conversation与Knowledge Base来源，统一检索强制来源追踪。 |
 | 核心记忆组件集中式Runtime API（已替代） | `records/decisions/20260723-ADR-centralized-memory-runtime-api.md` | 历史方案，已由“Control System直接提供组件Interface”ADR替代。 |
-| Control System直接提供组件Interface | `records/decisions/20260723-ADR-control-system-component-service.md` | 当前有效决策：删除Memory Runtime Service中间层，由Control System Service内部两个深Module直接提供长短记忆Interface。 |
+| 十四组件独立服务、五系统分类 | `records/decisions/20260805-ADR-fourteen-component-services-five-system-classification.md` | 当前有效决策：每个核心组件有独立公共服务，五个系统仅作为GenB分类。 |
+| Control System直接提供组件Interface（已替代） | `records/decisions/20260723-ADR-control-system-component-service.md` | 历史决策，已由2026-08-05十四组件独立服务ADR替代。 |
 | 核心组件平台三面分离 | `records/decisions/20260723-ADR-core-component-platform-three-planes.md` | 当前有效决策：GenB控制面、五大系统执行面和智能体编排面分离；公共契约复用但不使用重型Runtime SDK。 |
 | 自建最小Inference Engine | `records/decisions/20260723-ADR-self-hosted-inference-engine.md` | 当前有效决策：一期提前交付Runtime Inference Engine；Direct Provider为主、Alaya为可选Adapter，Control和智能体不持有上游模型凭证。 |
 

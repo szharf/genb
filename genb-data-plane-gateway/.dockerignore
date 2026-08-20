@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+tests/
+redis/
+nginx/
+.git/
+.env
+*.pem
+*.key

@@ -15,7 +15,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
-from .clients import ControlSystemClient, GenBClient, PlanningReasoningClient, RuntimeInferenceClient, StandaloneShortTermMemoryClient
+from .clients import (
+    GatewayBindingClient, GatewayCapabilityClient, GatewayLongTermMemoryClient,
+    GatewayPlanningReasoningClient, GatewayRuntimeInferenceClient, GatewayShortTermMemoryClient,
+)
 from .conversations import RedisConversationStore
 from .errors import RemoteCallError
 from .orchestrator import CustomerCoreComponentAgent, DeterministicAnswerer, PlanningTestAgent, StandaloneMemoryTestAgent
@@ -137,10 +140,27 @@ async def get_customer_session(
     request: Request,
     store: Annotated[RedisCustomerSessionStore, Depends(get_session_store)],
 ) -> CustomerSession:
+    gateway = _gateway_subject(request)
+    if gateway is not None:
+        return gateway
     session = await store.get(request.cookies.get("genb_agent_session", ""))
     if session is None:
         raise HTTPException(status_code=401, detail="智能体会话缺失或已过期")
     return session
+
+
+def _gateway_subject(request: Request) -> CustomerSession | None:
+    token = request.headers.get("X-GenB-Identity-Token", "")
+    user_id = request.headers.get("X-GenB-User-Id", "")
+    agent_id = request.headers.get("X-GenB-Agent-Id", "")
+    expected_agent = os.environ.get("AGENT_ID", "")
+    if not token or not user_id or not agent_id or not hmac.compare_digest(agent_id, expected_agent):
+        return None
+    try:
+        numeric_user_id = int(user_id)
+    except ValueError:
+        return None
+    return CustomerSession(token, agent_id, numeric_user_id, user_id)
 
 
 class AgentSsoClient:
@@ -182,43 +202,55 @@ async def get_sso_client() -> AsyncIterator[AgentSsoClient]:
         yield AgentSsoClient(http, settings)
 
 
-async def get_agent() -> AsyncIterator[StandaloneMemoryTestAgent]:
+async def get_agent(
+    x_genb_identity_token: Annotated[str, Header(alias="X-GenB-Identity-Token")],
+) -> AsyncIterator[StandaloneMemoryTestAgent]:
     settings = WebSettings.from_mapping(os.environ)
+    gateway_url = os.environ.get("DATA_PLANE_GATEWAY_URL", "http://127.0.0.1:9080")
     async with httpx.AsyncClient(timeout=settings.http_timeout_seconds) as http:
+        gateway = GatewayCapabilityClient(http, gateway_url, identity_token=x_genb_identity_token,
+                                          agent_credential=settings.service_credential)
         yield StandaloneMemoryTestAgent(
             agent_id=settings.agent_id,
             service_credential=settings.service_credential,
-            genb=GenBClient(http, settings.genb_base_url),
-            memory=StandaloneShortTermMemoryClient(http),
-            control=ControlSystemClient(
-                http,
-                os.environ.get("CONTROL_SYSTEM_BASE_URL", "http://127.0.0.1:18701"),
-            ),
+            genb=GatewayBindingClient(gateway_url),
+            memory=GatewayShortTermMemoryClient(gateway),
+            control=GatewayLongTermMemoryClient(gateway),
             answerer=DeterministicAnswerer(),
         )
 
 
-async def get_planning_agent() -> AsyncIterator[PlanningTestAgent]:
+async def get_planning_agent(
+    x_genb_identity_token: Annotated[str, Header(alias="X-GenB-Identity-Token")],
+) -> AsyncIterator[PlanningTestAgent]:
     settings = WebSettings.from_mapping(os.environ)
+    gateway_url = os.environ.get("DATA_PLANE_GATEWAY_URL", "http://127.0.0.1:9080")
     async with httpx.AsyncClient(timeout=settings.http_timeout_seconds) as http:
+        gateway = GatewayCapabilityClient(http, gateway_url, identity_token=x_genb_identity_token,
+                                          agent_credential=settings.service_credential)
         yield PlanningTestAgent(
             agent_id=settings.agent_id,
             service_credential=settings.service_credential,
-            genb=GenBClient(http, settings.genb_base_url),
-            planning=PlanningReasoningClient(http),
+            genb=GatewayBindingClient(gateway_url),
+            planning=GatewayPlanningReasoningClient(gateway),
         )
 
 
-async def get_customer_agent() -> AsyncIterator[CustomerCoreComponentAgent]:
+async def get_customer_agent(
+    x_genb_identity_token: Annotated[str, Header(alias="X-GenB-Identity-Token")],
+) -> AsyncIterator[CustomerCoreComponentAgent]:
     settings = WebSettings.from_mapping(os.environ)
+    gateway_url = os.environ.get("DATA_PLANE_GATEWAY_URL", "http://127.0.0.1:9080")
     async with httpx.AsyncClient(timeout=settings.http_timeout_seconds) as http:
+        gateway = GatewayCapabilityClient(http, gateway_url, identity_token=x_genb_identity_token,
+                                          agent_credential=settings.service_credential)
         yield CustomerCoreComponentAgent(
             agent_id=settings.agent_id,
             service_credential=settings.service_credential,
-            genb=GenBClient(http, settings.genb_base_url),
-            memory=StandaloneShortTermMemoryClient(http),
-            inference=RuntimeInferenceClient(http),
-            planning=PlanningReasoningClient(http),
+            genb=GatewayBindingClient(gateway_url),
+            memory=GatewayShortTermMemoryClient(gateway),
+            inference=GatewayRuntimeInferenceClient(gateway),
+            planning=GatewayPlanningReasoningClient(gateway),
         )
 
 
@@ -232,7 +264,9 @@ def create_app() -> FastAPI:
         request: Request,
         store: Annotated[RedisCustomerSessionStore, Depends(get_session_store)],
     ) -> Response:
-        session = await store.get(request.cookies.get("genb_agent_session", ""))
+        session = _gateway_subject(request)
+        if session is None:
+            session = await store.get(request.cookies.get("genb_agent_session", ""))
         if session is None:
             return RedirectResponse(url="/auth/login", status_code=303)
         return FileResponse(web_ui / "index.html")

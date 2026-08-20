@@ -102,7 +102,7 @@ Control System执行面
 ### 1.3 明确不做
 
 - 不实现其余12个组件的假Interface或mock成功返回。
-- 不实现完整RAG、Embedding和向量检索。
+- 本期只实现Conversation Memory；不伪造尚未接入的Knowledge Base Memory Adapter、完整RAG、Embedding和向量检索能力。
 - 不保存或展示模型隐藏CoT。
 - 不信任请求体中的`tenantId/userId/agentId`作为授权依据。
 - 不允许智能体直连Redis或PostgreSQL。
@@ -192,7 +192,7 @@ sequenceDiagram
   A->>S: context:prepare
   S-->>A: 会话摘要和最近消息
   A->>L: search
-  L-->>A: 用户长期记忆
+  L-->>A: 带sourceType/sourceRef的长期记忆
   A->>M: 上下文 + 当前问题
   M-->>A: 最终回答
   A->>S: turns:commit
@@ -643,6 +643,8 @@ CREATE TABLE control_system.long_term_memories (
   updated_at timestamptz NOT NULL
 );
 ```
+
+`source_type`是组合组件的强制来源判别字段，当前写入值为`CONVERSATION`，为后续知识库Adapter保留`KNOWLEDGE_BASE`。HTTP检索结果必须同时返回`sourceType`和`sourceRef`；未接入知识库Adapter时，`sourceTypes=[KNOWLEDGE_BASE]`返回空数组，不得回退为对话记忆。
 
 必须建立：
 
@@ -1255,9 +1257,9 @@ security:
 | `prepareShortTermContext` | `POST /api/v1/control-system/short-term-memory/context:prepare` |
 | `commitShortTermTurn` | `POST /api/v1/control-system/short-term-memory/turns:commit` |
 | `clearShortTermSession` | `DELETE /api/v1/control-system/short-term-memory/sessions/{sessionId}` |
-| `searchLongTermMemories` | `POST /api/v1/control-system/long-term-memory/search` |
-| `requestLongTermExtraction` | `POST /api/v1/control-system/long-term-memory/extractions` |
-| `getExtractionStatus` | `GET /api/v1/control-system/long-term-memory/extractions/{extractionId}` |
+| `searchLongTermMemories` | `POST /api/v1/long-term-memory/memories:search`（独立长期记忆服务） |
+| `requestLongTermExtraction` | `POST /api/v1/long-term-memory/extractions`（独立长期记忆服务） |
+| `getExtractionStatus` | `GET /api/v1/long-term-memory/extractions/{extractionId}`（独立长期记忆服务） |
 | `live` | `GET /health/live` |
 | `ready` | `GET /health/ready` |
 | `version` | `GET /version` |
@@ -1281,6 +1283,7 @@ security:
 - 新breaking version使用新路径主版本，不用Header暗切。
 - 服务至少支持当前和前一配置schema。
 - 弃用必须在OpenAPI标记deprecated、发布说明和指标中观测使用量。
+- M3完成切换后，旧`/api/v1/control-system/long-term-memory/**`已直接删除并返回404；本次为尚未对外发布阶段的单版本切换，不保留双版本。
 
 ---
 
@@ -2235,3 +2238,13 @@ Contract Suite：
 - [ ] SLO、告警、owner和回滚责任确认。
 
 通过后，按第27章PR序列开始实施。未通过的门禁必须记录为阻塞项，不能通过写假数据或关闭鉴权绕过。
+
+---
+
+## 34. 三组件独立服务收敛后的开发约束
+
+- `SHORT_TERM_MEMORY`、`LONG_TERM_MEMORY`和`PLANNING_REASONING`各自维护独立Manifest、静态OpenAPI、配置Schema、健康与版本接口；GenB仅负责控制面登记、配置、绑定、身份和审计，不承担常态业务转发。
+- 同一组件只能保留一个公共`REGISTERED` Implementation真源；升级使用更高语义Interface版本，已发布版本不得原地覆盖。
+- `LONG_TERM_MEMORY`仍是一个组件，Conversation Memory与Knowledge Base是内部Port/Adapter；知识库实现由其他同事交付时不得新增第二个GenB长期记忆组件。
+- 每次交付必须对比Manifest、静态OpenAPI和运行时`/openapi.json`的公开路径集合，并通过18714对应自然语言场景。
+- 规划模型给出未知风险时必须转为保守的`MEDIUM + CLARIFYING`并追问，不能把`riskLevel=UNKNOWN`直接交给严格Schema造成502。

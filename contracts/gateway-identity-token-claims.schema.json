@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://genb.local/contracts/gateway-identity-token-claims.schema.json",
+  "title": "GenB Gateway Identity Token Claims",
+  "type": "object",
+  "required": ["iss", "sub", "aud", "iat", "exp", "jti", "tenantId", "userId", "agentId", "sessionId"],
+  "properties": {
+    "iss": { "const": "genb-data-plane-gateway" },
+    "sub": { "type": "string", "minLength": 1 },
+    "aud": { "type": "string", "minLength": 1 },
+    "iat": { "type": "integer", "minimum": 0 },
+    "exp": { "type": "integer", "minimum": 1 },
+    "jti": { "type": "string", "minLength": 16 },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "userId": { "type": "string", "minLength": 1 },
+    "agentId": { "type": "string", "minLength": 1 },
+    "sessionId": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://genb.local/contracts/data-plane-config-snapshot.schema.json",
+  "title": "GenB Data Plane Published Configuration Snapshot",
+  "type": "object",
+  "required": ["schemaVersion", "configVersion", "publishedAt", "agents", "implementations", "bindings"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "configVersion": { "type": "integer", "minimum": 1 },
+    "publishedAt": { "type": "string", "format": "date-time" },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agentId", "status", "upstreamRef", "identityMode"],
+        "properties": {
+          "agentId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
+          "status": { "enum": ["PUBLISHED", "STOPPED"] },
+          "upstreamRef": { "type": "string", "minLength": 1 },
+          "identityMode": { "enum": ["NONE", "SIGNED_TOKEN"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "implementations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["implementationCode", "capabilityCode", "providerServiceName", "adapterCode", "adapterVersion", "upstreamRef", "credentialRef", "isolationMode", "status", "operations"],
+        "properties": {
+          "implementationCode": { "type": "string", "minLength": 1 },
+          "capabilityCode": { "$ref": "#/$defs/capabilityCode" },
+          "providerServiceName": { "type": "string", "minLength": 1 },
+          "adapterCode": { "type": "string", "minLength": 1 },
+          "adapterVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+          "upstreamRef": { "type": "string", "minLength": 1 },
+          "credentialRef": { "type": ["string", "null"] },
+          "isolationMode": { "enum": ["STATELESS", "SUBJECT_KEYS", "DEDICATED_INSTANCE", "UNSUPPORTED_MULTI_USER"] },
+          "status": { "enum": ["PUBLISHED", "DISABLED"] },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["operationId", "timeoutMs", "idempotency", "responseMode", "maxRequestBytes"],
+              "properties": {
+                "operationId": { "type": "string", "minLength": 1 },
+                "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 120000 },
+                "idempotency": { "enum": ["READ", "REQUIRED_KEY", "NONE"] },
+                "responseMode": { "enum": ["JSON", "SSE"] },
+                "maxRequestBytes": { "type": "integer", "minimum": 1 }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agentId", "capabilityCode", "implementationCode", "bindingVersion", "status"],
+        "properties": {
+          "agentId": { "type": "string", "minLength": 1 },
+          "capabilityCode": { "$ref": "#/$defs/capabilityCode" },
+          "implementationCode": { "type": "string", "minLength": 1 },
+          "bindingVersion": { "type": "integer", "minimum": 1 },
+          "status": { "enum": ["ACTIVE", "DISABLED"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "capabilityCode": {
+      "enum": [
+        "PLANNING_REASONING", "SHORT_TERM_MEMORY", "LONG_TERM_MEMORY", "TOOL_REGISTRY", "POLICY_GUARDRAILS",
+        "DATA_CONNECTORS", "CONTEXT_ENCODER", "MULTIMODAL_INTERFACE", "CONVERSATION_MANAGER",
+        "INFERENCE_ENGINE", "ACTION_EXECUTOR", "DISTRIBUTED_TRACING", "SECURITY_FILTER", "FEEDBACK_LOOP"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

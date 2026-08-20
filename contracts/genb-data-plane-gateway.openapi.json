@@ -1,0 +1,95 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GenB Unified Data Plane Gateway",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/agents/_auth/login": {
+      "get": {
+        "operationId": "beginAgentLogin",
+        "parameters": [
+          { "name": "agentId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "returnPath", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "303": { "description": "Redirect to the trusted portal login flow" }, "400": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/agents/_auth/callback": {
+      "get": {
+        "operationId": "completeAgentLogin",
+        "parameters": [
+          { "name": "code", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "state", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "303": { "description": "Set HttpOnly gateway session and redirect to the agent" }, "401": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/agents/_auth/logout": {
+      "post": {
+        "operationId": "logoutAgentSession",
+        "responses": { "204": { "description": "Session revoked and cookie cleared" }, "403": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/internal/agent-access/authorize": {
+      "get": {
+        "operationId": "authorizeAgentAccess",
+        "parameters": [
+          { "name": "agentId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "requestPath", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Authorized; trusted routing and identity are returned in internal response headers" }, "401": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" } },
+        "security": [{ "nginxIdentity": [] }]
+      }
+    },
+    "/.well-known/genb-gateway-jwks.json": {
+      "get": {
+        "operationId": "getGatewayJwks",
+        "responses": {
+          "200": {
+            "description": "Public signing keys",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    },
+    "/component-api/v1/capabilities/{capabilityCode}/operations/{operationId}:invoke": {
+      "post": {
+        "operationId": "invokeCapability",
+        "parameters": [
+          { "name": "capabilityCode", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "operationId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "Idempotency-Key", "in": "header", "required": false, "schema": { "type": "string" } }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "./capability-invocation.schema.json" } } } },
+        "responses": {
+          "200": { "description": "Normalized capability response" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/Problem" },
+          "502": { "$ref": "#/components/responses/Problem" },
+          "504": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        },
+        "security": [{ "gatewayIdentityToken": [] }, { "agentMachineIdentity": [] }]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "nginxIdentity": { "type": "apiKey", "in": "header", "name": "X-GenB-Nginx-Identity" },
+      "gatewayIdentityToken": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+      "agentMachineIdentity": { "type": "apiKey", "in": "header", "name": "X-GenB-Agent-Credential" }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC 9457-compatible normalized error",
+        "content": { "application/problem+json": { "schema": { "$ref": "./problem-details.schema.json" } } }
+      }
+    }
+  }
+}
