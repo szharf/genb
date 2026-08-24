@@ -1,11 +1,12 @@
 # 历史记录反向索引
 
-更新时间：2026-08-20
+更新时间：2026-08-24
 
 本文按主题索引 `records/` 下的历史记录，用于快速追溯背景、已做过的验证和历史结论。历史记录可信度低于当前代码；当前执行状态先看 `CURRENT_TASKS.md` 和 `PROJECT_INDEX.md` 的“当前工作树”。
 
 ## 2026-08 当前工作链
 
+- `records/reports/20260824-REPORT-add-zhangtao-unified-platform-user.md`：在不改动前三人现有密码和权限的前提下新增张涛 GenB/Genesis 管理员，配置 GenC `ADMIN`、精确绑定既有 GenO 同名用户，并完成四人全量登录与权限回归。
 - `records/reports/20260818-REPORT-genb-only-deployment-m0.md`：仅 GenB部署M0本地测试与两台服务器只读复核；后端磁盘达到95%硬停止线，当前客户端又依赖未部署的`/agents/{agentId}/`入口，Gate A未通过且服务器零修改。
 - `records/plans/20260818-PLAN-genb-only-capacity-exception-production-deployment.md`：仅发布 GenB 后端、四套中英文静态产物和必要数据库迁移的容量例外计划；明确排除网关、专用 Redis、核心组件和智能体，并设置 95%/5GiB硬停止线及新旧 JAR数据库兼容 Gate。
 - `records/deployments/20260813-DEPLOY-genb-whitelist-jar-and-log-governance.md`：获批删除23个精确哈希的GenB旧JAR并安装三个GenB日志的项目专用logrotate；释放约1.42GiB，服务未重启且回归通过，但Gate B仍需云盘扩容。
@@ -100,6 +101,7 @@
 | Genesis 用户权限列表性能优化 | `records/reports/20260720-REPORT-genesis-access-users-performance-optimization.md` | 消除用户与平台权限组装的 N+1 查询，将远程库列表响应从约 15 秒降至约 1.1 秒。 |
 | 新增 shizhenhua、sunny 并提交权限优化 | `records/reports/20260720-REPORT-add-shizhenhua-sunny-and-commit-access-optimization.md` | 两名统一门户/GenO 管理员创建、映射、登录验收及性能优化提交记录。 |
 | 补齐三名统一用户与平台权限 | `records/reports/20260727-REPORT-add-three-genesis-platform-users.md` | 为黄令湖、徐浩健、胡正尧新增 GenB/Genesis 管理员，分配 GenC `ADMIN` 并绑定既有 GenO 用户，完成真实登录和门户验收。 |
+| 补齐张涛统一用户与平台权限 | `records/reports/20260824-REPORT-add-zhangtao-unified-platform-user.md` | 新增张涛 GenB/Genesis 管理员，配置 GenC `ADMIN`、精确绑定既有 GenO 同名用户，并完成四人全量回归。 |
 | 核心组件需求确认与门户动效优化 | `records/reports/20260727-REPORT-core-component-confirmation-and-portal-motion-performance.md` | 整理只聚焦结构和功能效果的评审清单，定位登录页全屏Canvas持续重绘卡顿并完成性能回归、双语构建和页面验收。 |
 | GenC、GenO 生产部署报告 | `records/reports/20260721-REPORT-genc-geno-production-deployment.md` | 两个平台最新统一登录代码部署、同域 Cookie 修正和完整 SSO 验收。 |
 | GenO 推送与仓库外交接 | `records/reports/20260721-REPORT-geno-push-and-external-handoff.md` | protected `dev` 推送限制、仓库外交接文档和提交边界检查。 |
