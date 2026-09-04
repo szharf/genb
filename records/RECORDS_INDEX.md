@@ -1,11 +1,17 @@
 # 历史记录反向索引
 
-更新时间：2026-08-24
+更新时间：2026-09-04
 
 本文按主题索引 `records/` 下的历史记录，用于快速追溯背景、已做过的验证和历史结论。历史记录可信度低于当前代码；当前执行状态先看 `CURRENT_TASKS.md` 和 `PROJECT_INDEX.md` 的“当前工作树”。
 
 ## 2026-08 当前工作链
 
+- `records/deployments/20260904-部署-合并同事代码并更新GenB后端.md`：合并远端同事最新 MCP 代码，执行统一用户约束迁移，补齐 GenB 专用 Redis，修复运行中智能体排序并完成生产部署验收；未部署核心组件模型。
+- `records/deployments/20260904-部署-客户端智能体按运行端口访问.md`：普通智能体优先使用登记访问地址并兼容 47 部署端口，仅发布客户端中英文，管理端核心组件模型和后端均未部署。
+- `records/deployments/20260901-修复-FIBO前端路由恢复.md`：恢复统一 Nginx 中丢失的 FIBO 静态页与受限隧道 API 路由，并完成 FIBO 真实浏览器和其他项目全量回归。
+- `records/deployments/20260901-部署-两个官网域名补齐平台路由.md`：保留 Alaya.To 与 Genesis Engine.AI 官网首页，通过共享 Nginx include 补齐统一登录、GenB、GenO 路由，并完成 API Host 修正和双域名验收。
+- `records/plans/20260825-PLAN-genesis-unified-user-provisioning.md`：在统一门户权限模块增加原子化用户创建、GenC/GenO 配置、首次强制改密和双身份密码一致性的详细 TDD 与 Gate 计划。
+- `records/reports/20260828-REPORT-genesis-unified-user-provisioning.md`：统一用户单接口创建、GenO 事务外预检、GenB/Genesis 原子写入、首次强制改密、双语页面和本地 Gate A-F 验收记录。
 - `records/reports/20260824-REPORT-add-zhangtao-unified-platform-user.md`：在不改动前三人现有密码和权限的前提下新增张涛 GenB/Genesis 管理员，配置 GenC `ADMIN`、精确绑定既有 GenO 同名用户，并完成四人全量登录与权限回归。
 - `records/reports/20260818-REPORT-genb-only-deployment-m0.md`：仅 GenB部署M0本地测试与两台服务器只读复核；后端磁盘达到95%硬停止线，当前客户端又依赖未部署的`/agents/{agentId}/`入口，Gate A未通过且服务器零修改。
 - `records/plans/20260818-PLAN-genb-only-capacity-exception-production-deployment.md`：仅发布 GenB 后端、四套中英文静态产物和必要数据库迁移的容量例外计划；明确排除网关、专用 Redis、核心组件和智能体，并设置 95%/5GiB硬停止线及新旧 JAR数据库兼容 Gate。
@@ -82,6 +88,8 @@
 | 本地管理端同源代理 | `records/reports/20260714-REPORT-local-console-proxy.md` | 区分本地 Vite 代理和服务器 Nginx，修复管理端登录后空白。 |
 | Genesis 与 Gen-C 统一登录计划 | `records/plans/20260714-PLAN-genesis-genc-sso.md` | Gen-C 一次性登录凭证、本地会话、用户数据隔离、测试和部署边界计划。 |
 | Genesis 与 Gen-C 统一授权计划 | `records/plans/20260720-PLAN-genesis-genc-unified-authorization.md` | Genesis 集中配置 GenC 平台角色和权限、GenC 菜单路由与接口执行、逐步验证门禁计划。 |
+| Genesis 统一模块新增用户计划 | `records/plans/20260825-PLAN-genesis-unified-user-provisioning.md` | 设计单一创建 Interface、原子事务、GenO fail-closed、首次强制改密、中英文管理端和 Gate A-F。 |
+| Genesis 统一模块新增用户实现 | `records/reports/20260828-REPORT-genesis-unified-user-provisioning.md` | 单一创建接口、GenC/GenO 配置、双身份密码同步、首次改密门禁、数据库约束和本地 Gate A-F 验收。 |
 | GenC 角色权限可配置计划 | `records/plans/20260721-PLAN-genesis-genc-role-permission-management.md` | 在 GenB 统一门户权限页面配置 GenC `ADMIN`、`USER` 权限组合，包含初始化、接口、页面、SSO 和逐步验证方案。 |
 | Genesis 门户稳定短 URL 计划 | `records/plans/20260721-PLAN-genesis-portal-stable-short-url.md` | 分离 Vue Router 与静态资源/API 基路径，使 `/portal/login` 加载和登录后保持不变并兼容旧入口。 |
 | 个人分支、GenC 权限与备份盘点计划 | `records/plans/20260721-PLAN-personal-branch-genc-permissions-backup-inventory.md` | 三仓库建立 `szharf-dev`，保存当前成果，启动权限开发并只读整理 Codex 备份。 |
@@ -149,6 +157,8 @@
 | 主题 | 文件 | 说明 |
 |---|---|---|
 | 部署记录入口 | `records/deployments/README.md` | 部署记录目录说明。 |
+| 合并同事代码并更新 GenB 后端 | `records/deployments/20260904-部署-合并同事代码并更新GenB后端.md` | 合并 `create-genB` 到 `shizhenhua`，迁移数据库、补齐本机 Redis、恢复核心组件路由并修复运行中智能体排序。 |
+| 统一登录 GenO 切换新前端 | `records/deployments/20260901-部署-统一登录GenO切换新前端.md` | 将 GenO callback 切到 `18.167.156.11`，补齐 GenO CORS，并完成 Ticket、换票、profile、最终落地和刷新恢复验收。 |
 | GenB 登录恢复与三项目线上验证 | `records/deployments/20260810-DEPLOY-genb-login-recovery-and-project-verification.md` | 后端磁盘满后的空间恢复、GenB 精确重启、统一登录和 GenB/GenC/GenO 连续验收。 |
 | 三项目本地 BAT 启动 | `records/reports/20260722-REPORT-replace-control-web-with-local-bat.md` | 撤销本地控制网页，改用 GenB、GenC、GenO 三个 BAT。 |
 | 三项目后台启停快捷方式 | `records/reports/20260722-REPORT-background-local-start-stop-shortcuts.md` | 隐藏启动、D 盘日志、PID 精准停止和桌面六个入口。 |

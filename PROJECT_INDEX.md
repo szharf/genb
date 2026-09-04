@@ -1,6 +1,6 @@
 # Gen-B 项目索引
 
-更新时间：2026-08-20
+更新时间：2026-09-04
 
 这是 `D:\code\opencode\genb` 的项目级索引。目标是让人和 AI 在大项目中快速定位上下文，减少误改、重复搜索和 token 消耗。
 
@@ -65,10 +65,10 @@
 
 | 层级 | 当前结论 | 唯一入口 |
 |---|---|---|
-| 当前生产任务 | 仅 GenB 部署停在 M0 Gate A；后端磁盘达到 95% 硬停止线，客户端还依赖本轮不部署的 `/agents/{agentId}/`，服务器零修改。 | `records/reports/20260818-REPORT-genb-only-deployment-m0.md` |
-| 当前执行计划 | 只允许 GenB 后端、四套静态产物和必要 SQL；网关、Redis、核心组件与智能体均排除。 | `records/plans/20260818-PLAN-genb-only-capacity-exception-production-deployment.md` |
+| 当前生产任务 | GenB 后端已合并同事最新 MCP 代码并部署；核心组件目录路由恢复，智能体运行中优先排序生效。未部署核心组件模型。 | `records/deployments/20260904-部署-合并同事代码并更新GenB后端.md` |
+| 当前执行结果 | 后端、必要 SQL 和 GenB 专用本机 Redis 已上线；管理端核心组件模型、统一数据面网关和其他项目服务未部署。 | `records/deployments/20260904-部署-合并同事代码并更新GenB后端.md` |
 | 已完成本地实现 | 统一数据面网关 M0-M5、合同、GenB 控制面、管理端、18714 与三组件本地 Gate A-F 已完成。 | `records/reports/20260813-REPORT-unified-data-plane-gateway-m5.md` |
-| 生产上线前置 | GenB 白名单磁盘治理已完成但容量仍不达标；不得清理其他项目，后续只能先扩容再复核。 | `records/deployments/20260813-DEPLOY-genb-whitelist-jar-and-log-governance.md` |
+| 生产运行状态 | 47 根分区当前约 53%，GenB `8581` 健康 `UP`；`genb-redis` 仅绑定本机，生产 JAR 和数据库备份可用于回滚。 | `records/deployments/20260904-部署-合并同事代码并更新GenB后端.md` |
 | 同事源码交付 | 模块、启动、配置、数据库与打包排除项说明。 | `gen-b/项目说明.md` |
 | 初始化数据库 | GenB 当前 Entity 对应的 PostgreSQL 建表与索引脚本。 | `gen-b/创建所需表.sql` |
 
