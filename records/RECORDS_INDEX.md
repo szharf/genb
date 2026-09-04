@@ -6,6 +6,8 @@
 
 ## 2026-08 当前工作链
 
+- `records/deployments/20260904-部署-管理端Docker大文件上传修复.md`：修复新前端 Nginx 的 100 MiB 上传瓶颈，流式转发 Docker 大文件并将后端 multipart 临时目录迁移到 `/app`，完成生产发布与边界回归。
+- `records/plans/20260904-PLAN-管理端Docker大文件上传修复.md`：精确放开 GenB Docker 上传到 5 GiB，关闭前端请求缓冲，将 Spring multipart 临时目录迁出内存型 `/tmp`，并以边界探针和全站回归验收。
 - `records/deployments/20260904-部署-合并同事代码并更新GenB后端.md`：合并远端同事最新 MCP 代码，执行统一用户约束迁移，补齐 GenB 专用 Redis，修复运行中智能体排序并完成生产部署验收；未部署核心组件模型。
 - `records/deployments/20260904-部署-客户端智能体按运行端口访问.md`：普通智能体优先使用登记访问地址并兼容 47 部署端口，仅发布客户端中英文，管理端核心组件模型和后端均未部署。
 - `records/deployments/20260901-修复-FIBO前端路由恢复.md`：恢复统一 Nginx 中丢失的 FIBO 静态页与受限隧道 API 路由，并完成 FIBO 真实浏览器和其他项目全量回归。
