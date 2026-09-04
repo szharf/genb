@@ -6,6 +6,8 @@
 
 ## 2026-08 当前工作链
 
+- `records/deployments/20260904-部署-撤下GenB管理端核心组件模块.md`：因功能尚未完整，从管理端中英文生产版本撤下核心组件菜单、页面路由和公共 API 依赖，保留开发源码并完成双语部署与全站回归。
+- `records/plans/20260904-PLAN-撤下管理端核心组件模块.md`：限定只重新部署管理端中英文，确保核心组件模块不进入生产菜单、页面路由和构建代码块。
 - `records/deployments/20260904-部署-管理端Docker大文件上传修复.md`：修复新前端 Nginx 的 100 MiB 上传瓶颈，流式转发 Docker 大文件并将后端 multipart 临时目录迁移到 `/app`，完成生产发布与边界回归。
 - `records/plans/20260904-PLAN-管理端Docker大文件上传修复.md`：精确放开 GenB Docker 上传到 5 GiB，关闭前端请求缓冲，将 Spring multipart 临时目录迁出内存型 `/tmp`，并以边界探针和全站回归验收。
 - `records/deployments/20260904-部署-合并同事代码并更新GenB后端.md`：合并远端同事最新 MCP 代码，执行统一用户约束迁移，补齐 GenB 专用 Redis，修复运行中智能体排序并完成生产部署验收；未部署核心组件模型。
