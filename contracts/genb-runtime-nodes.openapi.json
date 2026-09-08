@@ -1,0 +1,90 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "GenB 运行节点登记接口（首批本地实现）",
+    "version": "0.1.0",
+    "description": "只包含已实现的登记和查询；不代表远程部署接口已完成。实际部署通常带 /api 上下文前缀。"
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/v1/runtime-nodes": {
+      "get": {
+        "summary": "管理员查询运行节点",
+        "responses": {
+          "200": {
+            "description": "Result.data 为 RuntimeNode 数组"
+          },
+          "403": {
+            "description": "无 ADMIN/SUPER_ADMIN 权限"
+          }
+        }
+      },
+      "post": {
+        "summary": "按运维受控 SSH 别名登记节点",
+        "description": "businessHost 从 runtime.nodes.trusted-targets 推导；初始 UNKNOWN、deploymentAllowed=false。nodeId、sshAlias、businessHost 不允许重复。不会连接服务器或执行 Docker。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterNode"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result.data 为登记后的 RuntimeNode"
+          },
+          "400": {
+            "description": "标识无效或别名未登记有效 IPv4 目标"
+          },
+          "403": {
+            "description": "无 ADMIN/SUPER_ADMIN 权限"
+          },
+          "409": {
+            "description": "节点标识、别名或业务地址已存在"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "RegisterNode": {
+        "type": "object",
+        "required": [
+          "nodeId",
+          "name",
+          "sshAlias"
+        ],
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "sshAlias": {
+            "type": "string",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$"
+          }
+        }
+      }
+    }
+  }
+}
