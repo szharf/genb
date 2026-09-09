@@ -4,8 +4,29 @@
   "title": "GenB Data Plane Published Configuration Snapshot",
   "type": "object",
   "required": ["schemaVersion", "configVersion", "publishedAt", "agents", "implementations", "bindings"],
+  "allOf": [{
+    "if": { "properties": { "schemaVersion": { "const": "1.1" } } },
+    "then": { "required": ["endpoints"] },
+    "else": { "not": { "required": ["endpoints"] } }
+  }],
   "properties": {
-    "schemaVersion": { "const": "1.0" },
+    "schemaVersion": { "enum": ["1.0", "1.1"] },
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agentId", "instanceId", "nodeId", "host", "port", "scheme"],
+        "properties": {
+          "agentId": { "type": "string", "minLength": 1 },
+          "instanceId": { "type": "string", "minLength": 1 },
+          "nodeId": { "type": "string", "minLength": 1 },
+          "host": { "type": "string", "format": "ipv4" },
+          "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+          "scheme": { "enum": ["http", "https"] }
+        },
+        "additionalProperties": false
+      }
+    },
     "configVersion": { "type": "integer", "minimum": 1 },
     "publishedAt": { "type": "string", "format": "date-time" },
     "agents": {

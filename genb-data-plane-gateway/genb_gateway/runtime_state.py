@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 import copy
 import json
 import threading
+import ipaddress
+from .node_endpoints import compile_endpoints
 
 from .capabilities import PublishedCapability, PublishedCapabilityTable
 from .routing import PublishedAgentRoute, PublishedRouteTable
@@ -75,12 +77,16 @@ class ControlSnapshotModule:
     def __init__(self, *, source, store, clock, poll_interval: timedelta = timedelta(seconds=2),
                  high_risk_ttl: timedelta = timedelta(seconds=5),
                  low_risk_grace: timedelta = timedelta(minutes=15),
-                 allowed_upstreams: frozenset[tuple[str, int]] = frozenset()) -> None:
+                 allowed_upstreams: frozenset[tuple[str, int]] = frozenset(),
+                 allowed_node_networks: tuple[str, ...] = ()) -> None:
         self.source, self.store, self.clock = source, store, clock
         self.poll_interval = poll_interval
         self.high_risk_ttl = high_risk_ttl
         self.low_risk_grace = low_risk_grace
         self.allowed_upstreams = allowed_upstreams
+        self.allowed_node_networks = tuple(ipaddress.IPv4Network(value) for value in allowed_node_networks)
+        if any(network.prefixlen < 8 for network in self.allowed_node_networks):
+            raise ValueError("node network policy is too broad")
         self._current: RuntimeSnapshot | None = None
         self._last_checked: datetime | None = None
         self._last_control_success: datetime | None = None
@@ -116,8 +122,11 @@ class ControlSnapshotModule:
             self._last_checked = now
             try:
                 version = self.source.get_version()
+                if self._current is not None and version < self._current.config_version:
+                    raise ValueError("config version downgrade refused")
                 if self._current is not None and version == self._current.config_version:
                     self._last_control_success = now
+                    self._acknowledge(version)
                     return self._current
                 candidate = self.source.get_snapshot()
                 if candidate.get("configVersion") != version:
@@ -131,7 +140,16 @@ class ControlSnapshotModule:
                 pass
             self._current = compiled
             self._last_control_success = now
+            self._acknowledge(compiled.config_version)
             return compiled
+
+    def _acknowledge(self, version):
+        callback = getattr(self.source, "acknowledge", None)
+        if callback:
+            try:
+                callback(version)
+            except (ConnectionError, OSError, ValueError):
+                pass
 
     def current(self, *, risk: str = "HIGH") -> RuntimeSnapshot:
         with self._lock:
@@ -154,18 +172,24 @@ class ControlSnapshotModule:
         return state.capabilities.resolve(agent_id, capability_code)
 
     def _compile(self, snapshot: dict, loaded_at: datetime) -> RuntimeSnapshot:
-        if set(snapshot) != {"schemaVersion", "configVersion", "publishedAt", "agents", "implementations", "bindings"}:
+        expected = {"schemaVersion", "configVersion", "publishedAt", "agents", "implementations", "bindings"}
+        if snapshot.get("schemaVersion") == "1.1":
+            expected.add("endpoints")
+        if set(snapshot) != expected:
             raise ValueError("snapshot envelope is not closed")
-        if snapshot["schemaVersion"] != "1.0" or not isinstance(snapshot["configVersion"], int):
+        if snapshot["schemaVersion"] not in {"1.0", "1.1"} or type(snapshot["configVersion"]) is not int or snapshot["configVersion"] < 1:
             raise ValueError("unsupported snapshot")
         serialized = json.dumps(snapshot, separators=(",", ":"), sort_keys=True)
         immutable_raw = json.loads(serialized)
         capabilities = PublishedCapabilityTable.from_snapshot(immutable_raw)
+        admitted = self.allowed_upstreams
+        if snapshot["schemaVersion"] == "1.1":
+            admitted = compile_endpoints(immutable_raw, self.allowed_node_networks, self.allowed_upstreams)
         routes = PublishedRouteTable(
             routes=[PublishedAgentRoute(
                 item["agentId"], item["upstreamRef"].rstrip("/"), item["identityMode"], frozenset({"*"}),
             ) for item in immutable_raw["agents"] if item["status"] == "PUBLISHED"],
-            allowed_upstreams=self.allowed_upstreams,
+            allowed_upstreams=admitted,
         )
         return RuntimeSnapshot(snapshot["configVersion"], snapshot["publishedAt"], loaded_at,
                                immutable_raw, capabilities, routes)

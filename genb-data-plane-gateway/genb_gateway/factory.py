@@ -97,6 +97,7 @@ def build_gateway(environment, *, clock=None, control_plane=None, redis=None):
     )
     runtime_state = ControlSnapshotModule(
         source=control_plane, store=RedisSnapshotStore(redis), clock=clock, allowed_upstreams=allowed_upstreams,
+        allowed_node_networks=tuple(value.strip() for value in environment.get("GENB_ALLOWED_NODE_NETWORKS", "").split(",") if value.strip()),
     )
     runtime_state.start()
     sessions = L1SessionStore(RedisSessionStore(redis, clock), clock)

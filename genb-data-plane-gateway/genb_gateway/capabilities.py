@@ -272,7 +272,7 @@ class PublishedCapabilityTable:
 
     @classmethod
     def from_snapshot(cls, snapshot: dict) -> "PublishedCapabilityTable":
-        if not isinstance(snapshot, dict) or snapshot.get("schemaVersion") != "1.0":
+        if not isinstance(snapshot, dict) or snapshot.get("schemaVersion") not in {"1.0", "1.1"}:
             raise ValueError("unsupported data-plane snapshot")
         try:
             implementations = {item["implementationCode"]: item for item in snapshot["implementations"]}

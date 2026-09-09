@@ -14,6 +14,10 @@ def main() -> None:
 
     def flush_audits() -> None:
         while not stopping.wait(1.0):
+            try:
+                app.runtime_state.refresh()
+            except RuntimeError:
+                pass
             app.audit_buffer.flush(batch_size=100)
 
     worker = threading.Thread(target=flush_audits, name="genb-audit-flush", daemon=True)
@@ -22,7 +26,7 @@ def main() -> None:
         uvicorn.run(
             app, host=os.environ.get("GENB_GATEWAY_HOST", "0.0.0.0"),
             port=int(os.environ.get("GENB_GATEWAY_PORT", "9080")),
-            workers=1, proxy_headers=False, server_header=False,
+            workers=1, proxy_headers=False, server_header=False, access_log=False,
         )
     finally:
         stopping.set()

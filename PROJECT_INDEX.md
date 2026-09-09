@@ -63,9 +63,11 @@
 
 ## 当前工作树
 
+当前交付：`records/plans/20260909-PLAN-异构节点Python与Docker远程部署.md`。18/Python、47/Python、47/Docker及统一网关已部署验收；真实FIBO业务测试待用户执行。实际生产证据见 `records/deployments/20260909-部署-异构节点与统一网关.md`，任务状态见 `CURRENT_TASKS.md` 顶部。
+
 | 层级 | 当前结论 | 唯一入口 |
 |---|---|---|
-| 当前生产任务 | GenB 管理端中英文已重新部署并撤下未完成的核心组件模块；后端保持现有合并版本。 | `records/deployments/20260904-部署-撤下GenB管理端核心组件模块.md` |
+| 当前生产任务 | 异构节点远程部署与统一网关已上线；管理端继续隐藏未完成核心组件模块。 | `records/deployments/20260909-部署-异构节点与统一网关.md` |
 | 当前执行结果 | 管理端没有核心组件菜单、可加载页面路由或公共 API 依赖；开发源码和后端鉴权 API 保留，核心组件模型未部署。 | `records/deployments/20260904-部署-撤下GenB管理端核心组件模块.md` |
 | 已完成本地实现 | 统一数据面网关 M0-M5、合同、GenB 控制面、管理端、18714 与三组件本地 Gate A-F 已完成。 | `records/reports/20260813-REPORT-unified-data-plane-gateway-m5.md` |
 | 生产运行状态 | 47 根分区当前约 53%，GenB `8581` 健康 `UP`；`genb-redis` 仅绑定本机，生产 JAR 和数据库备份可用于回滚。 | `records/deployments/20260904-部署-合并同事代码并更新GenB后端.md` |
@@ -144,3 +146,11 @@ AGENTS.md
 | 阶段总结 | `CHANGELOG.md` + `records/reports/` |
 
 新增记录后，同步更新 `records/RECORDS_INDEX.md`。
+
+
+## 2026-09-09 异构节点远程部署交付
+
+- 计划：`records/plans/20260909-PLAN-异构节点Python与Docker远程部署.md`
+- 部署证据与回滚：`records/deployments/20260909-部署-异构节点与统一网关.md`
+- FIBO用户步骤：`records/reports/20260909-说明-通过GenB把Python项目部署到18.md`
+- 网络决策：`docs/architecture/20260909-ADR-异构节点与受限隧道接入.md`

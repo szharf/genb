@@ -236,3 +236,10 @@ records/decisions/YYYYMMDD-ADR-主题.md
 - 新增 Bug 后，必须按问题类型归类。
 - 新增部署记录后，必须写服务器、路径、包名、命令、验证和回滚点。
 - 记录只描述历史事实，不覆盖当前代码判断。
+
+## 2026-09-09 异构节点远程部署交付
+
+- 计划：`records/plans/20260909-PLAN-异构节点Python与Docker远程部署.md`
+- 部署证据与回滚：`records/deployments/20260909-部署-异构节点与统一网关.md`
+- FIBO用户步骤：`records/reports/20260909-说明-通过GenB把Python项目部署到18.md`
+- 网络决策：`docs/architecture/20260909-ADR-异构节点与受限隧道接入.md`

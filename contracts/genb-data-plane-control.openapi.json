@@ -2,6 +2,7 @@
   "openapi": "3.1.0",
   "info": { "title": "GenB Data Plane Control Interface", "version": "1.0.0" },
   "paths": {
+    "/api/v1/internal/data-plane/config/applied": {"post": {"summary": "网关成功应用快照后的版本确认和心跳", "security": [{"gatewayMachineIdentity": []}], "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["configVersion"], "properties": {"configVersion": {"type": "integer", "minimum": 1}}}}}}, "responses": {"200": {"description": "accepted=true"}, "400": {"description": "版本非法或超过当前发布版本"}, "401": {"description": "机器身份无效"}}, "operationId": "acknowledgeDataPlaneConfiguration"}},
     "/api/v1/internal/data-plane/config/version": {
       "get": { "operationId": "getDataPlaneConfigVersion", "responses": { "200": { "description": "Latest monotonic config version and ETag" } }, "security": [{ "gatewayMachineIdentity": [] }] }
     },

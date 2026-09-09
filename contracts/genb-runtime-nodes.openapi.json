@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "GenB 运行节点登记接口（首批本地实现）",
-    "version": "0.1.0",
-    "description": "只包含已实现的登记和查询；不代表远程部署接口已完成。实际部署通常带 /api 上下文前缀。"
+    "title": "GenB 异构节点与远程部署接口",
+    "version": "0.2.0",
+    "description": "已实现 Python ZIP、Docker TAR、节点许可、部署任务、实例操作和网关发布。生产上下文前缀 /api；需 ADMIN/SUPER_ADMIN。"
   },
   "security": [
     {
@@ -51,6 +51,360 @@
           }
         }
       }
+    },
+    "/v1/runtime-nodes/{nodeId}/capabilities": {
+      "put": {
+        "summary": "修改节点允许的项目类型",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeCapabilities"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/probe": {
+      "post": {
+        "summary": "实时检查运行环境并更新资源观察",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-deployments": {
+      "post": {
+        "summary": "幂等创建持久化部署任务",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeploymentRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "按智能体查询任务",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-deployments/artifacts": {
+      "post": {
+        "summary": "上传项目并登记 SHA256 材料摘要",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "agentId",
+                  "runtimeType",
+                  "file"
+                ],
+                "properties": {
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "runtimeType": {
+                    "type": "string",
+                    "enum": [
+                      "PYTHON",
+                      "DOCKER"
+                    ]
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime-deployments/instances": {
+      "get": {
+        "summary": "查询实例",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-deployments/route": {
+      "get": {
+        "summary": "查询期望版本、网关确认版本与访问状态",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-deployments/instances/{instanceId}/logs": {
+      "get": {
+        "summary": "查询应用与构建日志",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-deployments/instances/{instanceId}/{action}": {
+      "post": {
+        "summary": "操作实例；停止前需撤下路由且网关已确认",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "start",
+                "stop",
+                "inspect"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-deployments/instances/{instanceId}/route/{action}": {
+      "post": {
+        "summary": "幂等发布或撤下路由",
+        "responses": {
+          "200": {
+            "description": "Result.data 返回结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "无管理权限"
+          },
+          "409": {
+            "description": "版本冲突、能力不支持或状态不允许"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "publish",
+                "withdraw"
+              ]
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -82,6 +436,106 @@
           "sshAlias": {
             "type": "string",
             "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$"
+          }
+        }
+      },
+      "NodeCapabilities": {
+        "type": "object",
+        "required": [
+          "expectedVersion",
+          "pythonAllowed",
+          "dockerAllowed"
+        ],
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pythonAllowed": {
+            "type": "boolean"
+          },
+          "dockerAllowed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DeploymentRequest": {
+        "type": "object",
+        "required": [
+          "agentId",
+          "nodeId",
+          "artifactId",
+          "runtimeType",
+          "port",
+          "containerPort",
+          "startupMode",
+          "entryPoint",
+          "memoryMb",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "runtimeType": {
+            "type": "string",
+            "enum": [
+              "PYTHON",
+              "DOCKER"
+            ]
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 65535
+          },
+          "containerPort": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "startupMode": {
+            "type": "string",
+            "enum": [
+              "SCRIPT",
+              "ASGI"
+            ]
+          },
+          "entryPoint": {
+            "type": "string"
+          },
+          "memoryMb": {
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 2048
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$"
+          }
+        }
+      },
+      "RouteRequest": {
+        "type": "object",
+        "required": [
+          "expectedVersion",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$"
           }
         }
       }
