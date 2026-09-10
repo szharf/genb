@@ -154,3 +154,8 @@ AGENTS.md
 - 部署证据与回滚：`records/deployments/20260909-部署-异构节点与统一网关.md`
 - FIBO用户步骤：`records/reports/20260909-说明-通过GenB把Python项目部署到18.md`
 - 网络决策：`docs/architecture/20260909-ADR-异构节点与受限隧道接入.md`
+
+## 2026-09-10 上传跨域修复
+
+- `records/bugs/20260910-BUG-多节点上传被跨域校验拒绝.md`
+- `records/deployments/20260910-DEPLOY-多节点上传跨域修复.md`
