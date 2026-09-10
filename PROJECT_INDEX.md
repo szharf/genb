@@ -159,3 +159,8 @@ AGENTS.md
 
 - `records/bugs/20260910-BUG-多节点上传被跨域校验拒绝.md`
 - `records/deployments/20260910-DEPLOY-多节点上传跨域修复.md`
+
+## 2026-09-10 节点检查自动恢复
+
+- `records/bugs/20260910-BUG-节点检查过期导致创建部署任务409.md`
+- `records/deployments/20260910-DEPLOY-节点检查过期自动恢复.md`
