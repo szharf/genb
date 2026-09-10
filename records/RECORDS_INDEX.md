@@ -253,3 +253,8 @@ records/decisions/YYYYMMDD-ADR-主题.md
 
 - [故障与修复](bugs/20260910-BUG-节点检查过期导致创建部署任务409.md)
 - [部署与回滚](deployments/20260910-DEPLOY-节点检查过期自动恢复.md)
+
+## 2026-09-10 Python 启动 500 与 FIBO 恢复
+
+- [根因与修复](bugs/20260910-BUG-Python项目目录包装与未完成部署启动500.md)
+- [部署和原实例恢复](deployments/20260910-DEPLOY-Python项目启动500修复与FIBO恢复.md)
