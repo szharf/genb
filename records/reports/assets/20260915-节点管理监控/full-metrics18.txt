@@ -1,0 +1,2 @@
+{"protocolVersion": 1, "nodeId": "node18", "sampleId": "da2b284b-2081-482f-adc5-44e667905a11", "sampledAt": "2026-09-15T07:51:35.356627+00:00", "bootId": "34e08c6b-340f-4f8a-bca3-034d1a701056", "cpuTotal": 262335381, "cpuIdle": 261814966, "memoryTotal": 957513728, "memoryAvailable": 458481664, "diskTotal": 8510222336, "diskAvailable": 5293068288, "diskPath": "/var/lib/genb-node"}
+{"fullExecutorPeakRssKiB": 16748, "cpuSeconds": 0.024391671}

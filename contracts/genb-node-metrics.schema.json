@@ -1,0 +1,64 @@
+{
+  "title": "GenB node metrics response v1",
+  "type": "object",
+  "required": [
+    "protocolVersion",
+    "nodeId",
+    "sampleId",
+    "sampledAt",
+    "bootId",
+    "cpuTotal",
+    "cpuIdle",
+    "memoryTotal",
+    "memoryAvailable",
+    "diskTotal",
+    "diskAvailable"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": 1
+    },
+    "nodeId": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "sampleId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sampledAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "bootId": {
+      "type": "string"
+    },
+    "diskPath": {
+      "type": "string"
+    },
+    "cpuTotal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cpuIdle": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "memoryTotal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "memoryAvailable": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "diskTotal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "diskAvailable": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

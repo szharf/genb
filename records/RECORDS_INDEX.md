@@ -1,5 +1,13 @@
 # 历史记录反向索引
 
+## 2026-09-15 多节点管理监控开发
+
+- `records/plans/20260915-PLAN-多节点管理监控与部署访问完善.md`：1.2 执行状态，保留完整 G1—G6 与未完成 Gate。
+- `records/reports/20260915-REPORT-节点管理监控开发与验证.md`：实现、自动化、只读采样和迁移演练；未生产发布。
+- `records/baselines/20260915-BASELINE-节点管理监控M0.md`：基线、容量预算和合同决定。
+- `records/decisions/20260915-ADR-节点观测与管理生命周期.md`：技术决策。
+- `docs/operation/RUNTIME_NODE_ONBOARDING_AND_MONITORING.md`：安装接入、监控开关及诊断操作指引。
+
 ## 2026-09-15 部署运维闭环
 
 - `records/plans/20260915-PLAN-统一部署运维与生命周期闭环.md`：统一入口、持久化生命周期操作、自动化与隔离服务器验收。
@@ -31,7 +39,7 @@
 - `records/reports/20260813-REPORT-unified-data-plane-gateway-m2.md`：统一访问M2的ASGI网关、Redis会话、RS256身份、机器撤销、Nginx `auth_request`、双Fake与SSE/WebSocket Gate C完成报告。
 - `records/reports/20260813-REPORT-unified-data-plane-gateway-m3.md`：核心能力调用M3的统一入口、编译期Adapter、Secret/Actor Token、双用户隔离、故障矩阵和18714统一Client Gate D完成报告。
 - `records/reports/20260813-REPORT-unified-data-plane-gateway-m4.md`：缓存与失效M4的原子快照、L1/Redis、5秒撤权、15分钟宽限、Actor Token缓存、审计背压和恢复故障注入Gate E完成报告。
-- `records/templates/PLAN_TEMPLATE.md`：项目标准任务计划模板，规定先形成失败基线、再按不可跳过Gate推进，并包含范围、交付物、验证、回滚和状态记录要求。
+- `records/templates/PLAN_TEMPLATE.md`：项目标准任务计划模板 2.0，一个主模板按精简/标准/架构扩展裁剪；包含摘要、任务类型基线、需求验收映射、阶段状态、指标依据及变更记录。
 - `records/plans/20260812-PLAN-unified-data-plane-gateway-implementation.md`：第一步；采用arc42、KEP与MADR混合结构，详细固定方案选择、现状/目标、信任关系、Module、运行时、Interface、数据、安全、缓存、兼容迁移、质量指标和Gate A-F，仅本地完成后才进入服务器检查。
 - `records/baselines/20260812-BASELINE-unified-data-plane-gateway-m0.md`：统一数据面网关M0的Git保护、裸端口、自有SSO、组件直连、三组件白名单和网关缺失失败基线，以及合同测试与红色安全验收入口。
 - `records/decisions/20260812-ADR-unified-data-plane-gateway.md`：以Nginx字节流代理和单数据面应用内两个深Module替代智能体常态直连；保留十四组件独立交付与稳定能力码。

@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "GenB 异构节点与远程部署接口",
-    "version": "0.3.0",
-    "description": "已实现 Python ZIP、Docker TAR、节点许可、部署任务、实例操作和网关发布。生产上下文前缀 /api；需 ADMIN/SUPER_ADMIN。 0.3 增加持久化运维任务、归档回收及继续核对；回收后实例 port 为空且可能在 JSON 中省略。"
+    "version": "0.4.0",
+    "description": "已实现 Python ZIP、Docker TAR、节点许可、部署任务、实例操作和网关发布。生产上下文前缀 /api；需 ADMIN/SUPER_ADMIN。 0.3 增加持久化运维任务、归档回收及继续核对；回收后实例 port 为空且可能在 JSON 中省略。 0.4 增加节点管理生命周期、只读监控/趋势/告警及异步接入检查；此版本当前为开发产物，生产是否升级以部署记录为准。"
   },
   "security": [
     {
@@ -174,7 +174,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "description": " 新增可选 failureCode：NODE_PRECHECK_FAILED、ARTIFACT_TRANSFER_FAILED、REMOTE_RESULT_UNKNOWN、REMOTE_PREPARATION_FAILED、HEALTH_CHECK_FAILED；HEALTHY 清除。"
       }
     },
     "/v1/runtime-deployments/artifacts": {
@@ -494,6 +495,559 @@
           }
         }
       }
+    },
+    "/v1/runtime-nodes/overview": {
+      "get": {
+        "summary": "节点分页监控总览",
+        "description": "data={records:NodeObservationView[],total,page,size}。保留原 GET /runtime-nodes 数组兼容。查询不执行 SSH；未知/过期不是零资源。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}": {
+      "get": {
+        "summary": "节点详情",
+        "description": "返回 RuntimeNode，新增 managementState、description、alertCpuPercent、alertMemoryPercent、alertDiskPercent。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "编辑节点名称和说明",
+        "description": "不得通过此接口修改可信 SSH 目标。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeMetadataRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/lifecycle": {
+      "post": {
+        "summary": "节点暂停/恢复/排空/退役",
+        "description": "data=RuntimeNode。PAUSED/DRAINING 阻止新增部署和入口发布，已有恢复及已接受任务不受影响。RETIRE 必须先暂停或排空且没有活动依赖；不删除业务数据。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeLifecycleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/dependencies": {
+      "get": {
+        "summary": "退役依赖",
+        "description": "data=字符串数组，非空必须处理后再退役。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/changes": {
+      "get": {
+        "summary": "管理操作记录",
+        "description": "data=最近50条，含操作者、动作、管理状态、版本和元数据/阈值前后值。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/metrics": {
+      "get": {
+        "summary": "节点最新观测",
+        "description": "data=NodeObservationView。CPU 首个样本/重启后为空；最近有效样本超过90秒或采样失败时 stale=true。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/alerts": {
+      "get": {
+        "summary": "节点告警记录",
+        "description": "data=最近100条内已经触发的告警，状态 OPEN/RECOVERING/RESOLVED。站内展示，无自动外发。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/checks": {
+      "get": {
+        "summary": "接入检查历史",
+        "description": "data=最近20条检查任务，stepsJson 说明各阶段。NEEDS_SAMPLE 不表示业务已验证。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "创建只读异步接入检查",
+        "description": "data=RuntimeNodeCheck；重复键复用；每节点最多一个活动检查。不安装软件、不部署业务，不把 SSH 连通视为完整业务验证。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeCheckRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/metrics/history": {
+      "get": {
+        "summary": "资源历史",
+        "description": "data=NodeMetric[]；1—6小时使用原始样本，更长使用5分钟聚合，超过1000点均匀取样覆盖完整范围。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hours",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 168,
+              "default": 1
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/workloads": {
+      "get": {
+        "summary": "节点项目实例清单",
+        "description": "data={records:[{instance,name,accessState,launchUrl,stale}],total,page,size}。项目入口指向该项目当前发布版本，不保证是本行实例；仅未回收的 GenB 托管实例。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ]
+      }
+    },
+    "/v1/runtime-nodes/{nodeId}/alert-thresholds": {
+      "put": {
+        "summary": "修改告警阈值",
+        "description": "阈值为使用率百分比；持续5分钟超限、持续2分钟恢复；采样不可用单独检测。",
+        "responses": {
+          "200": {
+            "description": "Result.data 为下述业务结果"
+          },
+          "400": {
+            "description": "参数无效"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "404": {
+            "description": "节点不存在"
+          },
+          "409": {
+            "description": "版本、状态、幂等或活动依赖冲突"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nodeId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeThresholdRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runtime-nodes/legacy-workloads": {
+      "get": {
+        "summary": "旧模式部署盘点（不自动分配节点）",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result.data={records:[{agentId,name,deploymentRecords,runtimeState,port}],total,page,size}；旧状态仅登记值，部署记录数不代表运行实例数"
+          },
+          "403": {
+            "description": "需要管理员"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -709,6 +1263,214 @@
             "format": "int64"
           }
         }
+      },
+      "NodeLifecycleRequest": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "PAUSE",
+              "RESUME",
+              "DRAIN",
+              "RETIRE"
+            ]
+          },
+          "expectedVersion": {
+            "type": "integer"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$"
+          }
+        },
+        "required": [
+          "action",
+          "expectedVersion",
+          "idempotencyKey"
+        ]
+      },
+      "NodeMetadataRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "expectedVersion": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "expectedVersion"
+        ]
+      },
+      "NodeThresholdRequest": {
+        "type": "object",
+        "properties": {
+          "cpu": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "memory": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "disk": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "expectedVersion": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cpu",
+          "memory",
+          "disk",
+          "expectedVersion"
+        ]
+      },
+      "NodeCheckRequest": {
+        "type": "object",
+        "properties": {
+          "idempotencyKey": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$"
+          }
+        },
+        "required": [
+          "idempotencyKey"
+        ]
+      },
+      "NodeMetric": {
+        "type": "object",
+        "properties": {
+          "sampleId": {
+            "type": "string"
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sampledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolution": {
+            "type": "integer",
+            "enum": [
+              0,
+              300
+            ]
+          },
+          "cpuPercent": {
+            "type": "number"
+          },
+          "memoryPercent": {
+            "type": "number"
+          },
+          "diskPercent": {
+            "type": "number"
+          },
+          "memoryTotal": {
+            "type": "integer"
+          },
+          "memoryAvailable": {
+            "type": "integer"
+          },
+          "diskTotal": {
+            "type": "integer"
+          },
+          "diskAvailable": {
+            "type": "integer"
+          },
+          "sampleCount": {
+            "type": "integer"
+          },
+          "cpuCount": {
+            "type": "integer"
+          }
+        },
+        "required": []
+      },
+      "NodeCounts": {
+        "type": "object",
+        "properties": {
+          "projects": {
+            "type": "integer"
+          },
+          "instances": {
+            "type": "integer"
+          },
+          "runningProjects": {
+            "type": "integer"
+          },
+          "running": {
+            "type": "integer"
+          },
+          "stopped": {
+            "type": "integer"
+          },
+          "abnormal": {
+            "type": "integer"
+          },
+          "unknown": {
+            "type": "integer"
+          },
+          "lastObservedRunning": {
+            "type": "integer"
+          }
+        },
+        "required": []
+      },
+      "NodeObservationView": {
+        "type": "object",
+        "properties": {
+          "node": {
+            "type": "object"
+          },
+          "observationState": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "ONLINE",
+              "STALE",
+              "UNREACHABLE",
+              "UNSUPPORTED",
+              "INVALID"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/NodeMetric"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/NodeCounts"
+          }
+        },
+        "required": []
       }
     }
   }
