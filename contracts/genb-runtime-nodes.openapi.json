@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "GenB 异构节点与远程部署接口",
-    "version": "0.2.0",
-    "description": "已实现 Python ZIP、Docker TAR、节点许可、部署任务、实例操作和网关发布。生产上下文前缀 /api；需 ADMIN/SUPER_ADMIN。"
+    "version": "0.3.0",
+    "description": "已实现 Python ZIP、Docker TAR、节点许可、部署任务、实例操作和网关发布。生产上下文前缀 /api；需 ADMIN/SUPER_ADMIN。 0.3 增加持久化运维任务、归档回收及继续核对；回收后实例 port 为空且可能在 JSON 中省略。"
   },
   "security": [
     {
@@ -146,7 +146,8 @@
               }
             }
           }
-        }
+        },
+        "description": " 已归档或有活动运维任务时拒绝；首次节点部署不能直接接管有旧部署记录的项目。历史材料复用必须提供新幂等标识和空闲端口。"
       },
       "get": {
         "summary": "按智能体查询任务",
@@ -281,7 +282,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "description": "返回项目入口、配置版本和目标 instanceId；APPLIED 仅表示网关新鲜确认，不能替代实例健康检查。"
       }
     },
     "/v1/runtime-deployments/instances/{instanceId}/logs": {
@@ -404,6 +406,93 @@
             }
           }
         ]
+      }
+    },
+    "/v1/runtime-deployments/agents/{agentId}/operations": {
+      "post": {
+        "summary": "提交幂等运维任务",
+        "description": "停止类操作先撤入口并等待新鲜网关 ACK。RETIRE/ARCHIVE 确认远端回收后释放端口并保留目录；RETRY 复用材料创建新实例，不自动复制业务数据。",
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeOperationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result.data 为 RuntimeLifecycleOperation；提交成功不代表远端已完成"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "409": {
+            "description": "已有活动任务、状态不允许、幂等冲突或项目已归档；message 给出原因"
+          }
+        }
+      }
+    },
+    "/v1/runtime-deployments/operations": {
+      "get": {
+        "summary": "按项目查询运维任务历史",
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result.data 为运维任务数组，按创建时间倒序"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          }
+        }
+      }
+    },
+    "/v1/runtime-deployments/operations/{operationId}/resume": {
+      "post": {
+        "summary": "继续核对失败运维任务",
+        "description": "仅 FAILED 且未产生新部署任务时允许；不重新生成操作标识。新部署失败须在新实例发起操作。",
+        "parameters": [
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result.data 为 RuntimeLifecycleOperation；提交成功不代表远端已完成"
+          },
+          "403": {
+            "description": "需要 ADMIN/SUPER_ADMIN"
+          },
+          "409": {
+            "description": "已有活动任务、状态不允许、幂等冲突或项目已归档；message 给出原因"
+          }
+        }
       }
     }
   },
@@ -536,6 +625,88 @@
           "idempotencyKey": {
             "type": "string",
             "pattern": "^[A-Za-z0-9_-]{8,64}$"
+          }
+        }
+      },
+      "RuntimeOperationRequest": {
+        "type": "object",
+        "required": [
+          "action",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "START",
+              "STOP",
+              "RESTART",
+              "RETIRE",
+              "RETRY",
+              "OFFLINE",
+              "ARCHIVE"
+            ]
+          },
+          "instanceId": {
+            "type": "string",
+            "nullable": true,
+            "description": "OFFLINE/ARCHIVE 必须不提供或为 null；其他动作必须是属于该项目的实例"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$"
+          }
+        }
+      },
+      "RuntimeLifecycleOperation": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "instanceId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "resultJobId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "WAITING",
+              "VERIFYING",
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "phaseStartedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       }
