@@ -19,6 +19,7 @@ class GatewaySession:
     agent_id: str
     session_grant: str
     expires_at: datetime
+    created_at: datetime | None = None
 
 
 class InMemorySessionStore:
@@ -34,7 +35,8 @@ class InMemorySessionStore:
 
     def create(self, *, ttl: timedelta, **subject) -> str:
         token = secrets.token_urlsafe(32)
-        session = GatewaySession(expires_at=self._clock() + ttl, **subject)
+        now = self._clock()
+        session = GatewaySession(expires_at=now + ttl, created_at=now, **subject)
         self._sessions[self._hash(token)] = session
         return token
 
@@ -184,9 +186,16 @@ class L1SessionStore:
             self._denied_subjects = {key: expiry for key, expiry in self._denied_subjects.items() if expiry > now}
             self._denied_access = {key: expiry for key, expiry in self._denied_access.items() if expiry > now}
             self._denied_agents = {key: expiry for key, expiry in self._denied_agents.items() if expiry > now}
+            # Scope invalidation revokes sessions existing at that moment. A later
+            # successful authorization may create a new session for the same user.
+            # Legacy records without creation time stay conservatively revoked.
+            def predates(expiry):
+                return expiry is not None and (session.created_at is None
+                                                or session.created_at <= expiry - self.deny_ttl)
             return ((token_key is not None and token_key in self._denied_tokens)
-                    or subject in self._denied_subjects or access in self._denied_access
-                    or session.agent_id in self._denied_agents)
+                    or subject in self._denied_subjects
+                    or predates(self._denied_access.get(access))
+                    or predates(self._denied_agents.get(session.agent_id)))
 
     def _remember(self, token_key: str | None, session: GatewaySession) -> None:
         expires = min(self.clock() + self.ttl, session.expires_at)
@@ -288,8 +297,10 @@ class RedisSessionStore:
     def create(self, *, ttl: timedelta, **subject) -> str:
         for _ in range(4):
             token = secrets.token_urlsafe(32)
-            session = GatewaySession(expires_at=self._clock() + ttl, **subject)
-            value = json.dumps({**session.__dict__, "expires_at": session.expires_at.isoformat()}, separators=(",", ":"))
+            now = self._clock()
+            session = GatewaySession(expires_at=now + ttl, created_at=now, **subject)
+            value = json.dumps({**session.__dict__, "expires_at": session.expires_at.isoformat(),
+                                "created_at": now.isoformat()}, separators=(",", ":"))
             subject_value = json.dumps({"primary_key":self._key(token), "session":json.loads(value)}, separators=(",", ":"))
             seconds = str(max(1, int(ttl.total_seconds())))
             if self.redis.command("EVAL", self.CREATE_SCRIPT, "4", self._key(token),
@@ -349,6 +360,8 @@ class RedisSessionStore:
     def _decode(value: str | None) -> GatewaySession | None:
         if value is None: return None
         record = json.loads(value); record["expires_at"] = datetime.fromisoformat(record["expires_at"])
+        if record.get("created_at") is not None:
+            record["created_at"] = datetime.fromisoformat(record["created_at"])
         return GatewaySession(**record)
 
 

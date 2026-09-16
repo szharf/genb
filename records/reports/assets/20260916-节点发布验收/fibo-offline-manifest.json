@@ -1,0 +1,7 @@
+{
+  "source": "D:/code/opencode/fibo_refactor",
+  "wheels": 81,
+  "bytes": 71813936,
+  "sha256": "d52f34f84bbd2a17646c63a3b317cb7bec8f6023e7a38e05f98baf45f2b6013d",
+  "changes": "Exact versions from existing node18 environment; Linux CPython 3.11 offline wheels; no source code or existing business data modified"
+}

@@ -1,0 +1,123 @@
+{
+  "agentId": "fibo-trial-20260916",
+  "instanceId": "8f61c942-4474-4545-ad00-bd8c09535fb1",
+  "jobId": "6a418972-efcb-4568-8018-48f7bec66a07",
+  "deploymentState": "HEALTHY",
+  "nodeId": "node18",
+  "port": 18086,
+  "memoryMb": 192,
+  "gatewayAccess": {
+    "authorized": 200,
+    "unauthorized": "rejected",
+    "revoked": 302
+  },
+  "route": {
+    "agentId": "fibo-trial-20260916",
+    "currentVersion": 37,
+    "desiredVersion": 31,
+    "appliedVersion": 37,
+    "accessState": "APPLIED",
+    "launchUrl": "/agents/fibo-trial-20260916/",
+    "instanceId": "8f61c942-4474-4545-ad00-bd8c09535fb1"
+  },
+  "businessChecks": {
+    "home": {
+      "status": 200,
+      "bytes": 126148,
+      "basePathAware": true
+    },
+    "api/status": {
+      "status": 200,
+      "bytes": 361,
+      "keys": [
+        "slots",
+        "phase",
+        "filled_count",
+        "total_count",
+        "next_question",
+        "eval_metrics",
+        "axiom_violations",
+        "compliance_flags",
+        "decision",
+        "audit_count",
+        "chain_valid",
+        "rdf_graph",
+        "reasoning_chain"
+      ]
+    },
+    "api/audit": {
+      "status": 200,
+      "bytes": 97,
+      "keys": [
+        "entries",
+        "chain_valid",
+        "chain_message"
+      ]
+    },
+    "api/graph": {
+      "status": 200,
+      "bytes": 31,
+      "keys": [
+        "triple_count",
+        "triples"
+      ]
+    },
+    "emptyChat": {
+      "status": 400
+    },
+    "syntheticChat": {
+      "status": 200,
+      "phase": "collecting",
+      "filledCount": 0,
+      "keys": [
+        "session_id",
+        "slots",
+        "filled_count",
+        "total_count",
+        "phase",
+        "next_question",
+        "eval_metrics",
+        "axiom_violations",
+        "compliance_flags",
+        "decision",
+        "audit_count",
+        "chain_valid",
+        "rdf_graph",
+        "reasoning_chain",
+        "user_text",
+        "lang"
+      ]
+    },
+    "syntheticApplication": {
+      "status": 200,
+      "phase": "decided",
+      "filledCount": 5,
+      "decision": {
+        "type": "approve",
+        "approved_amount": 50000.0,
+        "interest_rate": 4.2,
+        "term_months": 24,
+        "monthly_payment": 2175.7,
+        "conditions": [],
+        "reject_reasons": [],
+        "fibo_rules": [
+          "Matrix:A_DTI_Low_Approve"
+        ],
+        "original_amount": 50000.0
+      },
+      "chainValid": true
+    },
+    "twoUserIsolation": {
+      "accountAStatus": 200,
+      "accountBStatus": 200,
+      "sameNonemptySlots": true,
+      "passed": false
+    },
+    "auditAfterApplication": {
+      "status": 200,
+      "entryCount": 6,
+      "chainValid": true
+    },
+    "logWarningCount": 3
+  }
+}

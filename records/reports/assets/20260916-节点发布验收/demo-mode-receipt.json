@@ -1,0 +1,13 @@
+{
+  "agentId": "fibo-trial-20260916",
+  "previousName": "联合推理新版隔离试点 20260916",
+  "name": "联合推理新版·单用户演示（降级模式）",
+  "description": "仅供单用户演示。部署于18的独立实例，使用内存RDF及内置语义规则，未启用正式Fuseki/Pellet；多个账号不隔离业务状态。保留原项目服务，不用于多用户正式业务。",
+  "basis": "用户2026-09-16明确选择单用户演示降级模式",
+  "changedFields": [
+    "name",
+    "description",
+    "update_time"
+  ],
+  "runtimeChanged": false
+}

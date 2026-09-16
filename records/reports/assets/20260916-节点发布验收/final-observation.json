@@ -1,0 +1,168 @@
+{
+  "nodes": {
+    "node18": {
+      "metrics": {
+        "node": {
+          "nodeId": "node18",
+          "name": "18 · Python 专用",
+          "sshAlias": "genb-node18",
+          "businessHost": "18.167.156.11",
+          "enabled": true,
+          "deploymentAllowed": true,
+          "state": "READY",
+          "managementState": "ACTIVE",
+          "alertCpuPercent": 85.0,
+          "alertMemoryPercent": 85.0,
+          "alertDiskPercent": 90.0,
+          "observedAt": "2026-09-16T07:52:52.924101Z",
+          "pythonAllowed": true,
+          "dockerAllowed": false,
+          "pythonAvailable": true,
+          "dockerAvailable": false,
+          "pythonVersion": "Python 3.11.15",
+          "availableMemoryMb": 454,
+          "availableDiskMb": 4528,
+          "version": 39
+        },
+        "observationState": "ONLINE",
+        "observedAt": "2026-09-16T08:00:46.234478Z",
+        "stale": false,
+        "latest": {
+          "sampleId": "0bba5b80-8454-43c6-96f6-3e2c8655ff27",
+          "nodeId": "node18",
+          "receivedAt": "2026-09-16T08:00:46.234478Z",
+          "sampledAt": "2026-09-16T08:00:46.167710Z",
+          "resolution": 0,
+          "cpuPercent": 2.2463085139805217,
+          "memoryPercent": 60.329899729646485,
+          "diskPercent": 48.44709824511922,
+          "memoryTotal": 957513728,
+          "memoryAvailable": 379846656,
+          "diskTotal": 8510222336,
+          "diskAvailable": 4387266560,
+          "sampleCount": 1,
+          "cpuCount": 1
+        },
+        "counts": {
+          "projects": 3,
+          "instances": 3,
+          "runningProjects": 2,
+          "running": 2,
+          "stopped": 1,
+          "abnormal": 0,
+          "unknown": 0,
+          "lastObservedRunning": 2
+        }
+      },
+      "historyPoints": 87,
+      "alerts": [],
+      "querySeconds": 0.009
+    },
+    "node47": {
+      "metrics": {
+        "node": {
+          "nodeId": "node47",
+          "name": "47 · Python / Docker",
+          "sshAlias": "genb-node47",
+          "businessHost": "47.116.69.17",
+          "enabled": true,
+          "deploymentAllowed": true,
+          "state": "READY",
+          "managementState": "ACTIVE",
+          "alertCpuPercent": 85.0,
+          "alertMemoryPercent": 85.0,
+          "alertDiskPercent": 90.0,
+          "observedAt": "2026-09-16T07:28:56.834191Z",
+          "pythonAllowed": true,
+          "dockerAllowed": true,
+          "pythonAvailable": true,
+          "dockerAvailable": true,
+          "pythonVersion": "Python 3.11.13",
+          "availableMemoryMb": 1537,
+          "availableDiskMb": 31785,
+          "version": 62
+        },
+        "observationState": "ONLINE",
+        "observedAt": "2026-09-16T08:00:44.467750Z",
+        "stale": false,
+        "latest": {
+          "sampleId": "cd7582ee-d74c-40b4-80a4-6e27d9ae9346",
+          "nodeId": "node47",
+          "receivedAt": "2026-09-16T08:00:44.467750Z",
+          "sampledAt": "2026-09-16T08:00:44.460371Z",
+          "resolution": 0,
+          "cpuPercent": 6.330923822384621,
+          "memoryPercent": 88.05030096537206,
+          "diskPercent": 68.57841870400617,
+          "memoryTotal": 16219848704,
+          "memoryAvailable": 1938223104,
+          "diskTotal": 105285210112,
+          "diskAvailable": 33082277888,
+          "sampleCount": 1,
+          "cpuCount": 1
+        },
+        "counts": {
+          "projects": 2,
+          "instances": 7,
+          "runningProjects": 0,
+          "running": 0,
+          "stopped": 3,
+          "abnormal": 0,
+          "unknown": 4,
+          "lastObservedRunning": 0
+        }
+      },
+      "historyPoints": 87,
+      "alerts": [
+        {
+          "id": "63f72817-4de0-4a33-9463-cd45aee6d785",
+          "nodeId": "node47",
+          "metric": "MEMORY",
+          "state": "OPEN",
+          "threshold": 85.0,
+          "observedValue": 88.05030096537206,
+          "startedAt": "2026-09-16T07:14:32.427232Z",
+          "openedAt": "2026-09-16T07:20:20.218436Z",
+          "updatedAt": "2026-09-16T08:00:44.467750Z",
+          "version": 86
+        }
+      ],
+      "querySeconds": 0.008
+    }
+  },
+  "legacyFibo": {
+    "route": {
+      "agentId": "agent-1789008009749",
+      "currentVersion": 37,
+      "desiredVersion": 10,
+      "appliedVersion": 37,
+      "accessState": "APPLIED",
+      "launchUrl": "/agents/agent-1789008009749/",
+      "instanceId": "7783d566-69db-4371-827b-12ab69d5c5c1"
+    },
+    "instances": [
+      {
+        "instanceId": "7783d566-69db-4371-827b-12ab69d5c5c1",
+        "nodeId": "node18",
+        "agentId": "agent-1789008009749",
+        "port": 18001,
+        "containerPort": 18001,
+        "artifactId": "03efacc8-4c86-4bbd-a637-99ea2af928d6",
+        "jobId": "711aec6a-13b5-419d-aba4-61b707318dca",
+        "imageId": "",
+        "state": "HEALTHY",
+        "healthPath": "/",
+        "observedAt": "2026-09-16T08:00:52.748526Z",
+        "version": 1899
+      }
+    ]
+  },
+  "release": {
+    "monitoringEnabled": true,
+    "invalidationConfigured": true,
+    "zh": 200,
+    "en": 200,
+    "portal": 200,
+    "client": 200
+  }
+}

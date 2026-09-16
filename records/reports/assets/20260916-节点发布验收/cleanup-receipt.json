@@ -1,0 +1,11 @@
+{
+  "temporaryUsersDeleted": [
+    "genb_nodes_allow_20260916",
+    "genb_nodes_check_20260916",
+    "genb_nodes_deny_20260916"
+  ],
+  "activeTestGrants": 0,
+  "sampleProjectsArchived": true,
+  "fiboTrial": "retained isolated and published for authorized testing",
+  "originalFibo": "preserved"
+}

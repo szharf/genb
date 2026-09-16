@@ -1,0 +1,26 @@
+{
+  "18py": {
+    "agent": "nodes-18py-20260916",
+    "complete": true,
+    "retiredIds": [
+      "0fb4e8b6-c5ba-4e06-8a41-6d5ccd099c4b"
+    ]
+  },
+  "47py": {
+    "agent": "nodes-47py-20260916",
+    "complete": true,
+    "retiredIds": [
+      "8a19a434-1b5b-4d48-a810-a94a2bfab6c0",
+      "1900d4ba-80fd-4967-a83d-c9e65bf6f99a",
+      "6cfe8f67-a178-401f-b2af-3d817ce846b5",
+      "2c24228c-2a19-4676-bd2d-4c687d7a6ab3"
+    ]
+  },
+  "47docker": {
+    "agent": "nodes-47docker-20260916",
+    "complete": true,
+    "retiredIds": [
+      "179eb953-e7b1-4ac3-a6a0-d122afbb3d21"
+    ]
+  }
+}
