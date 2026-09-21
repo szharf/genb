@@ -1,0 +1,13 @@
+{
+  "summary": "采样正常节点\n2\n/ 2\n\n90 秒内收到有效样本\n\n纳管项目\n5\n\n跨节点按项目去重\n\n运行实例\n2\n/ 10\n\n待核对 4 · 停止 4\n\n待处理告警\n1\n\n包含恢复确认中的告警",
+  "errors": [],
+  "failedApi": [],
+  "checks": [
+    "real list",
+    "filtered global summary",
+    "screen1920",
+    "24h history",
+    "node workloads drawer",
+    "English screen"
+  ]
+}

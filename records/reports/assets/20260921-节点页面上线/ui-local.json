@@ -1,0 +1,34 @@
+{
+  "checks": [
+    "list",
+    "empty filter",
+    "global summary under filter",
+    "screen1920 no scroll",
+    "detail return",
+    "mobile screen no horizontal overflow",
+    "stale resource values",
+    "failed refresh retains labeled previous data"
+  ],
+  "errors": [],
+  "requests": [
+    "/genb/api/v1/runtime-nodes/legacy-workloads?page=1&size=20",
+    "/genb/api/v1/runtime-nodes/overview?page=1&size=20&search=&state=",
+    "/genb/api/v1/runtime-nodes/node18/metrics/history?hours=1",
+    "/genb/api/v1/runtime-nodes/overview?page=1&size=20&search=not-present&state=&observation=&capability=",
+    "/genb/api/v1/runtime-nodes/overview?page=1&size=2&search=&state=",
+    "/genb/api/v1/runtime-nodes/overview?page=1&size=20&search=&state=",
+    "/genb/api/v1/runtime-nodes/legacy-workloads?page=1&size=20",
+    "/genb/api/v1/runtime-nodes/node18/dependencies?",
+    "/genb/api/v1/runtime-nodes/node18/changes?",
+    "/genb/api/v1/runtime-nodes/node18/metrics?",
+    "/genb/api/v1/runtime-nodes/node18/metrics/history?hours=1",
+    "/genb/api/v1/runtime-nodes/node18/alerts?",
+    "/genb/api/v1/runtime-nodes/node18/workloads?page=1&size=20",
+    "/genb/api/v1/runtime-nodes/node18/checks?",
+    "/genb/api/v1/runtime-nodes/node18/dependencies?",
+    "/genb/api/v1/runtime-nodes/node18/changes?",
+    "/genb/api/v1/runtime-nodes/overview?page=1&size=2&search=&state=",
+    "/genb/api/v1/runtime-nodes/overview?page=1&size=2&search=&state=",
+    "/genb/api/v1/runtime-nodes/overview?page=1&size=2&search=&state="
+  ]
+}
