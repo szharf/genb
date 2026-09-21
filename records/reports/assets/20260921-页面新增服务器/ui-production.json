@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "real Chinese wizard",
+    "existing node rejection through nginx",
+    "English wizard",
+    "mobile content width"
+  ],
+  "errors": []
+}

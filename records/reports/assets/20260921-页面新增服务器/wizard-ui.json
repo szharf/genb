@@ -1,0 +1,23 @@
+{
+  "checks": [
+    "Chinese display name",
+    "invalid input",
+    "fingerprint gate",
+    "explicit install confirmation",
+    "polling and readiness",
+    "activation"
+  ],
+  "errors": [],
+  "calls": [
+    "legacy-workloads",
+    "overview",
+    "runtime-node-onboarding",
+    "runtime-node-onboarding",
+    "scan",
+    "test",
+    "install",
+    "node-0123456789abcdef",
+    "activate",
+    "overview"
+  ]
+}
