@@ -1,5 +1,6 @@
 """Dynamic endpoints remain constrained by independently configured proxy-node networks."""
 import ipaddress
+import re
 from urllib.parse import urlsplit
 
 
@@ -7,10 +8,16 @@ def compile_endpoints(snapshot, networks, legacy_upstreams):
     admitted = set(legacy_upstreams)
     by_agent = {}
     for item in snapshot["endpoints"]:
-        if set(item) != {"agentId", "instanceId", "nodeId", "host", "port", "scheme"}:
+        legacy = "legacyTargetId" in item
+        identity = "legacyTargetId" if legacy else "instanceId"
+        if set(item) != {"agentId", identity, "nodeId", "host", "port", "scheme"}:
             raise ValueError("invalid endpoint envelope")
-        if not all(isinstance(item[key], str) and item[key] for key in ("agentId", "instanceId", "nodeId", "host")):
+        if not all(isinstance(item[key], str) and item[key] for key in ("agentId", identity, "nodeId", "host")):
             raise ValueError("endpoint identity missing")
+        if legacy and (snapshot["schemaVersion"] != "1.2" or not (
+                re.fullmatch(r"deployment:[1-9][0-9]{0,18}", item[identity])
+                or item[identity] == "process:" + item["agentId"])):
+            raise ValueError("invalid legacy deployment identity")
         address = ipaddress.IPv4Address(item["host"])
         if (address.is_unspecified or address.is_multicast or address.is_link_local or address.is_reserved
                 or str(address) == "100.100.100.200" or not any(address in network for network in networks)):

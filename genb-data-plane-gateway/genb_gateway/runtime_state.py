@@ -173,17 +173,17 @@ class ControlSnapshotModule:
 
     def _compile(self, snapshot: dict, loaded_at: datetime) -> RuntimeSnapshot:
         expected = {"schemaVersion", "configVersion", "publishedAt", "agents", "implementations", "bindings"}
-        if snapshot.get("schemaVersion") == "1.1":
+        if snapshot.get("schemaVersion") in {"1.1", "1.2"}:
             expected.add("endpoints")
         if set(snapshot) != expected:
             raise ValueError("snapshot envelope is not closed")
-        if snapshot["schemaVersion"] not in {"1.0", "1.1"} or type(snapshot["configVersion"]) is not int or snapshot["configVersion"] < 1:
+        if snapshot["schemaVersion"] not in {"1.0", "1.1", "1.2"} or type(snapshot["configVersion"]) is not int or snapshot["configVersion"] < 1:
             raise ValueError("unsupported snapshot")
         serialized = json.dumps(snapshot, separators=(",", ":"), sort_keys=True)
         immutable_raw = json.loads(serialized)
         capabilities = PublishedCapabilityTable.from_snapshot(immutable_raw)
         admitted = self.allowed_upstreams
-        if snapshot["schemaVersion"] == "1.1":
+        if snapshot["schemaVersion"] in {"1.1", "1.2"}:
             admitted = compile_endpoints(immutable_raw, self.allowed_node_networks, self.allowed_upstreams)
         routes = PublishedRouteTable(
             routes=[PublishedAgentRoute(

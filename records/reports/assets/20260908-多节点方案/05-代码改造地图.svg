@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="代码改造地图：界面、后端、网关、节点执行入口"><defs><marker id="blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker><marker id="green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#087f70"/></marker><marker id="orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#b65a12"/></marker><marker id="ink" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#172a46"/></marker><marker id="muted" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#556980"/></marker></defs><rect width="1600" height="900" fill="#f3f6fb"/><g font-family="Microsoft YaHei, PingFang SC, sans-serif">
+<text x="60" y="49" font-size="18" fill="#556980" font-weight="600">GENB · 架构讲解 / 05     2026-09-08 · 规划示意，尚未实施</text>
+<text x="60" y="112" font-size="42" fill="#172a46" font-weight="700">代码改造地图：界面、后端、网关、节点执行入口</text>
+<text x="60" y="157" font-size="23" fill="#556980" font-weight="400">改造重点：页面能选节点，后端能远程执行，网关能自动更新，操作结果能查清。</text>
+<rect x="60" y="215" width="710" height="245" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="60" y="215" width="8" height="245" rx="4" fill="#2563eb"/>
+<text x="85" y="258" font-size="29" fill="#2563eb" font-weight="700">管理端 / 客户端 → 部署到 18</text>
+<text x="85" y="301" font-size="24" fill="#172a46" font-weight="400">AgentDeploy.vue：选节点、上传/部署进度</text>
+<text x="85" y="338" font-size="24" fill="#172a46" font-weight="400">AgentRuntime.vue：按实例启停、状态与日志</text>
+<text x="85" y="375" font-size="24" fill="#172a46" font-weight="400">拟新增节点管理页；补齐中英文文案</text>
+<text x="85" y="412" font-size="24" fill="#172a46" font-weight="400">agentLaunch.ts / clientAgents.ts：固定入口和可用状态</text>
+<rect x="830" y="215" width="710" height="245" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="830" y="215" width="8" height="245" rx="4" fill="#b65a12"/>
+<text x="855" y="258" font-size="29" fill="#b65a12" font-weight="700">GenB 后端 → 更新 47 上的 JAR</text>
+<text x="855" y="301" font-size="23" fill="#172a46" font-weight="400">部署接口：从操作本机改为操作指定节点</text>
+<text x="855" y="338" font-size="23" fill="#172a46" font-weight="400">运行管理：启停、状态和日志对应正确实例</text>
+<text x="855" y="375" font-size="23" fill="#172a46" font-weight="400">任务记录：保存进度，失败后可查明和恢复</text>
+<text x="855" y="412" font-size="23" fill="#172a46" font-weight="400">数据库：关联智能体、服务器和部署版本</text>
+<rect x="60" y="510" width="710" height="250" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="60" y="510" width="8" height="250" rx="4" fill="#2563eb"/>
+<text x="85" y="553" font-size="29" fill="#2563eb" font-weight="700">动态配置与网关 → 拟部署到 47</text>
+<text x="85" y="596" font-size="24" fill="#172a46" font-weight="400">发布服务：生成智能体与运行地址的对应表</text>
+<text x="85" y="633" font-size="24" fill="#172a46" font-weight="400">地址检查：只允许转发到获准的服务器</text>
+<text x="85" y="670" font-size="24" fill="#172a46" font-weight="400">配置更新：自动加载新版本并反馈是否生效</text>
+<text x="85" y="707" font-size="24" fill="#172a46" font-weight="400">回归验证：原有智能体、权限和异常恢复</text>
+<rect x="830" y="510" width="710" height="250" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="830" y="510" width="8" height="250" rx="4" fill="#087f70"/>
+<text x="855" y="553" font-size="29" fill="#087f70" font-weight="700">新节点执行入口 + 18 Nginx 配置</text>
+<text x="855" y="596" font-size="23" fill="#172a46" font-weight="400">节点：只接受获准的部署操作，核对目标容器</text>
+<text x="855" y="633" font-size="23" fill="#172a46" font-weight="400">节点：接收材料、导入、启停、查询状态和日志</text>
+<text x="855" y="670" font-size="23" fill="#172a46" font-weight="400">18：通用访问规则，支持页面和流式回答</text>
+<text x="855" y="707" font-size="23" fill="#172a46" font-weight="400">后台不能继续默认操作本机 Docker</text>
+<text x="60" y="810" font-size="23" fill="#172a46" font-weight="600">数据库增量模型：节点 → 实例 → 智能体；材料 → 部署任务；路由发布 → 网关确认。既有业务数据保留。</text>
+<text x="60" y="861" font-size="19" fill="#556980" font-weight="400">蓝色：平台与访问    绿色：智能体运行    橙色：部署管理 / 待核验事项</text>
+</g></svg>

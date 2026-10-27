@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="一次完整交付：上传 → 选节点 → 运行 → 发布"><defs><marker id="blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker><marker id="green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#087f70"/></marker><marker id="orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#b65a12"/></marker><marker id="ink" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#172a46"/></marker><marker id="muted" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#556980"/></marker></defs><rect width="1600" height="900" fill="#f3f6fb"/><g font-family="Microsoft YaHei, PingFang SC, sans-serif">
+<text x="60" y="49" font-size="18" fill="#556980" font-weight="600">GENB · 架构讲解 / 03     2026-09-08 · 规划示意，尚未实施</text>
+<text x="60" y="112" font-size="42" fill="#172a46" font-weight="700">一次完整交付：上传 → 选节点 → 运行 → 发布</text>
+<text x="60" y="157" font-size="23" fill="#556980" font-weight="400">管理员在一个页面完成操作；平台把每个阶段的进度和失败原因显示出来。</text>
+<rect x="60" y="225" width="440" height="205" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="60" y="225" width="8" height="205" rx="4" fill="#2563eb"/>
+<text x="85" y="268" font-size="29" fill="#2563eb" font-weight="700">① 上传并选择服务器</text>
+<text x="85" y="311" font-size="23" fill="#172a46" font-weight="400">上传 OAG Docker 镜像归档</text>
+<text x="85" y="348" font-size="23" fill="#172a46" font-weight="400">选择：47 / 已接入新节点 B</text>
+<text x="85" y="385" font-size="23" fill="#172a46" font-weight="400">后端保存材料、任务与校验值</text>
+<rect x="580" y="225" width="440" height="205" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="580" y="225" width="8" height="205" rx="4" fill="#b65a12"/>
+<text x="605" y="268" font-size="29" fill="#b65a12" font-weight="700">② 47 分发并发起操作</text>
+<text x="605" y="311" font-size="23" fill="#172a46" font-weight="400">检查目标节点资源、权限和端口</text>
+<text x="605" y="348" font-size="23" fill="#172a46" font-weight="400">安全传输 → 检查文件完整性</text>
+<text x="605" y="385" font-size="23" fill="#172a46" font-weight="400">发起受控导入和启动操作</text>
+<rect x="1100" y="225" width="440" height="205" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="1100" y="225" width="8" height="205" rx="4" fill="#087f70"/>
+<text x="1125" y="268" font-size="29" fill="#087f70" font-weight="700">③ 新节点运行实例</text>
+<text x="1125" y="311" font-size="23" fill="#172a46" font-weight="400">Docker 导入并启动指定镜像</text>
+<text x="1125" y="348" font-size="23" fill="#172a46" font-weight="400">返回实例归属、状态和日志</text>
+<text x="1125" y="385" font-size="23" fill="#172a46" font-weight="400">应用健康检查通过</text>
+<path d="M 500 320 L 580 320" fill="none" stroke="#b65a12" stroke-width="3" marker-end="url(#orange)"/>
+<path d="M 1020 320 L 1100 320" fill="none" stroke="#b65a12" stroke-width="3" marker-end="url(#orange)"/>
+<rect x="60" y="540" width="440" height="205" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="60" y="540" width="8" height="205" rx="4" fill="#2563eb"/>
+<text x="85" y="583" font-size="29" fill="#2563eb" font-weight="700">⑥ 用户从固定入口访问</text>
+<text x="85" y="626" font-size="23" fill="#172a46" font-weight="400">https://实际域名/agents/oag/</text>
+<text x="85" y="663" font-size="23" fill="#172a46" font-weight="400">网关鉴权后定位实例</text>
+<text x="85" y="700" font-size="23" fill="#172a46" font-weight="400">迁移运行节点，入口保持不变</text>
+<rect x="580" y="540" width="440" height="205" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="580" y="540" width="8" height="205" rx="4" fill="#2563eb"/>
+<text x="605" y="583" font-size="29" fill="#2563eb" font-weight="700">⑤ 网关应用新版本</text>
+<text x="605" y="626" font-size="23" fill="#172a46" font-weight="400">加载端点授权和路由配置</text>
+<text x="605" y="663" font-size="23" fill="#172a46" font-weight="400">检查后整体更新并回报结果</text>
+<text x="605" y="700" font-size="23" fill="#172a46" font-weight="400">正常新增无需重启网关</text>
+<rect x="1100" y="540" width="440" height="205" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="1100" y="540" width="8" height="205" rx="4" fill="#b65a12"/>
+<text x="1125" y="583" font-size="29" fill="#b65a12" font-weight="700">④ 管理员检查并发布</text>
+<text x="1125" y="626" font-size="23" fill="#172a46" font-weight="400">启动成功 ≠ 已经对用户开放</text>
+<text x="1125" y="663" font-size="23" fill="#172a46" font-weight="400">确认权限与接入兼容性</text>
+<text x="1125" y="700" font-size="23" fill="#172a46" font-weight="400">47 生成新的配置版本</text>
+<path d="M 1320 430 L 1320 540" fill="none" stroke="#087f70" stroke-width="3" marker-end="url(#green)"/>
+<path d="M 1100 645 L 1020 645" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#blue)"/>
+<path d="M 580 645 L 500 645" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#blue)"/>
+<text x="60" y="799" font-size="24" fill="#b65a12" font-weight="600">异常处理：失败停在当前阶段；超时先核对远端结果，避免重复容器；新版本失败不停止原实例。</text>
+<text x="60" y="861" font-size="19" fill="#556980" font-weight="400">蓝色：平台与访问    绿色：智能体运行    橙色：部署管理 / 待核验事项</text>
+</g></svg>

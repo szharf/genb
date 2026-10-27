@@ -85,13 +85,13 @@ class HttpControlPlane:
     def get_version(self) -> int:
         value = self._get("/api/v1/internal/data-plane/config/version")
         version = value.get("configVersion")
-        if value.get("schemaVersion") not in {"1.0", "1.1"} or type(version) is not int or version < 1:
+        if value.get("schemaVersion") not in {"1.0", "1.1", "1.2"} or type(version) is not int or version < 1:
             raise ConnectionError("control plane returned an invalid config version")
         return version
 
     def get_snapshot(self) -> dict:
         value = self._get("/api/v1/internal/data-plane/config/snapshot")
-        if value.get("schemaVersion") not in {"1.0", "1.1"} or type(value.get("configVersion")) is not int:
+        if value.get("schemaVersion") not in {"1.0", "1.1", "1.2"} or type(value.get("configVersion")) is not int:
             raise ConnectionError("control plane returned an invalid config snapshot")
         return value
 

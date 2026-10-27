@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="每台服务器：装什么软件，部署什么程序"><defs><marker id="blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker><marker id="green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#087f70"/></marker><marker id="orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#b65a12"/></marker><marker id="ink" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#172a46"/></marker><marker id="muted" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#556980"/></marker></defs><rect width="1600" height="900" fill="#f3f6fb"/><g font-family="Microsoft YaHei, PingFang SC, sans-serif">
+<text x="60" y="49" font-size="18" fill="#556980" font-weight="600">GENB · 架构讲解 / 02     2026-09-08 · 规划示意，尚未实施</text>
+<text x="60" y="112" font-size="42" fill="#172a46" font-weight="700">每台服务器：装什么软件，部署什么程序</text>
+<text x="60" y="157" font-size="23" fill="#556980" font-weight="400">“安装软件”是准备运行环境；“部署代码”是发布本项目的程序和配置。</text>
+<rect x="60" y="210" width="465" height="495" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="60" y="210" width="8" height="495" rx="4" fill="#2563eb"/>
+<text x="85" y="253" font-size="29" fill="#2563eb" font-weight="700">47 · 更新管理能力</text>
+<text x="85" y="296" font-size="22" fill="#172a46" font-weight="400">已有环境（实施前核验）</text>
+<text x="85" y="333" font-size="22" fill="#172a46" font-weight="400">• Java 17：运行 GenB 后端</text>
+<text x="85" y="370" font-size="22" fill="#172a46" font-weight="400">• PostgreSQL、Redis、Docker</text>
+<text x="85" y="407" font-size="22" fill="#172a46" font-weight="400">拟新增 / 配置</text>
+<text x="85" y="444" font-size="22" fill="#172a46" font-weight="400">• SSH/SFTP 客户端或 Java 库</text>
+<text x="85" y="481" font-size="22" fill="#172a46" font-weight="400">• 部署文件目录、任务记录</text>
+<text x="85" y="518" font-size="22" fill="#172a46" font-weight="400">拟部署</text>
+<text x="85" y="555" font-size="22" fill="#172a46" font-weight="400">• 更新后的 GenB JAR</text>
+<text x="85" y="592" font-size="22" fill="#172a46" font-weight="400">• 网关应用 + 隔离专用 Redis</text>
+<text x="85" y="629" font-size="22" fill="#172a46" font-weight="400">• 本机节点受控操作工具</text>
+<rect x="560" y="210" width="465" height="495" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="560" y="210" width="8" height="495" rx="4" fill="#087f70"/>
+<text x="585" y="253" font-size="29" fill="#087f70" font-weight="700">新节点 · 准备执行环境</text>
+<text x="585" y="296" font-size="22" fill="#172a46" font-weight="400">基础软件</text>
+<text x="585" y="333" font-size="22" fill="#172a46" font-weight="400">• Linux + Docker Engine</text>
+<text x="585" y="370" font-size="22" fill="#172a46" font-weight="400">• SSH 服务及 SFTP 子系统</text>
+<text x="585" y="407" font-size="22" fill="#172a46" font-weight="400">• 文件完整性、空间检查工具</text>
+<text x="585" y="444" font-size="22" fill="#172a46" font-weight="400">拟配置 / 部署</text>
+<text x="585" y="481" font-size="22" fill="#172a46" font-weight="400">• 专用账号、受控操作工具</text>
+<text x="585" y="518" font-size="22" fill="#172a46" font-weight="400">• 部署目录、日志与资源限额</text>
+<text x="585" y="555" font-size="22" fill="#172a46" font-weight="400">• 上传导入的智能体镜像/容器</text>
+<text x="585" y="592" font-size="22" fill="#172a46" font-weight="400">按智能体实际需要</text>
+<text x="585" y="629" font-size="22" fill="#172a46" font-weight="400">• 持久卷；GPU 驱动仅按需</text>
+<rect x="1060" y="210" width="480" height="495" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="1060" y="210" width="8" height="495" rx="4" fill="#2563eb"/>
+<text x="1085" y="253" font-size="29" fill="#2563eb" font-weight="700">18 · 保持统一入口</text>
+<text x="1085" y="296" font-size="22" fill="#172a46" font-weight="400">已有环境（实施前核验）</text>
+<text x="1085" y="333" font-size="22" fill="#172a46" font-weight="400">• Nginx + 静态前端产物</text>
+<text x="1085" y="370" font-size="22" fill="#172a46" font-weight="400">拟部署 / 调整</text>
+<text x="1085" y="407" font-size="22" fill="#172a46" font-weight="400">• 更新中英文管理端、客户端</text>
+<text x="1085" y="444" font-size="22" fill="#172a46" font-weight="400">• 配置通用智能体代理规则</text>
+<text x="1085" y="481" font-size="22" fill="#172a46" font-weight="400">• 正式入口域名及 HTTPS</text>
+<text x="1085" y="518" font-size="22" fill="#172a46" font-weight="400">• 到网关和各运行节点的连通</text>
+<text x="1085" y="555" font-size="22" fill="#172a46" font-weight="400">职责边界</text>
+<text x="1085" y="592" font-size="22" fill="#172a46" font-weight="400">• 默认不运行智能体容器</text>
+<text x="1085" y="629" font-size="22" fill="#172a46" font-weight="400">• 不安装 GenB JAR/数据库</text>
+<rect x="60" y="732" width="1480" height="80" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="60" y="732" width="8" height="80" rx="4" fill="#b65a12"/>
+<text x="85" y="775" font-size="29" fill="#b65a12" font-weight="700">运行时说明</text>
+<text x="85" y="818" font-size="24" fill="#172a46" font-weight="400"></text>
+<text x="305" y="782" font-size="21" fill="#172a46" font-weight="400">网关容器内携带 Python 3.11+；新节点通常无需另装 Java/Python/Node.js，依赖由智能体镜像携带。</text>
+<text x="60" y="861" font-size="19" fill="#556980" font-weight="400">蓝色：平台与访问    绿色：智能体运行    橙色：部署管理 / 待核验事项</text>
+</g></svg>

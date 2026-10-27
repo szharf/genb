@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="整体架构：18 接待用户，47 管理，新节点运行智能体"><defs><marker id="blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker><marker id="green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#087f70"/></marker><marker id="orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#b65a12"/></marker><marker id="ink" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#172a46"/></marker><marker id="muted" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#556980"/></marker></defs><rect width="1600" height="900" fill="#f3f6fb"/><g font-family="Microsoft YaHei, PingFang SC, sans-serif">
+<text x="60" y="49" font-size="18" fill="#556980" font-weight="600">GENB · 架构讲解 / 01     2026-09-08 · 规划示意，尚未实施</text>
+<text x="60" y="112" font-size="42" fill="#172a46" font-weight="700">整体架构：18 接待用户，47 管理，新节点运行智能体</text>
+<text x="60" y="157" font-size="23" fill="#556980" font-weight="400">建议部署示例：网关鉴权服务放 47，容量与网络需上线前核验；不是当前生产拓扑。</text>
+<rect x="60" y="220" width="280" height="180" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="60" y="220" width="8" height="180" rx="4" fill="#2563eb"/>
+<text x="85" y="263" font-size="29" fill="#2563eb" font-weight="700">用户 / 管理员</text>
+<text x="85" y="306" font-size="22" fill="#172a46" font-weight="400">登录统一门户</text>
+<text x="85" y="343" font-size="22" fill="#172a46" font-weight="400">选择、上传、使用智能体</text>
+<rect x="420" y="220" width="440" height="220" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="420" y="220" width="8" height="220" rx="4" fill="#2563eb"/>
+<text x="445" y="263" font-size="29" fill="#2563eb" font-weight="700">18 · 统一前端服务器</text>
+<text x="445" y="306" font-size="23" fill="#172a46" font-weight="400">已有：前端页面、Nginx</text>
+<text x="445" y="343" font-size="23" fill="#172a46" font-weight="400">调整：通用 /agents/{id}/ 入口</text>
+<text x="445" y="380" font-size="23" fill="#172a46" font-weight="400">负责：检查访问权限、转发请求</text>
+<rect x="990" y="220" width="550" height="220" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="990" y="220" width="8" height="220" rx="4" fill="#087f70"/>
+<text x="1015" y="263" font-size="29" fill="#087f70" font-weight="700">新服务器 B / C · 运行节点</text>
+<text x="1015" y="306" font-size="24" fill="#172a46" font-weight="400">安装：Docker、SSH/SFTP 服务</text>
+<text x="1015" y="343" font-size="24" fill="#172a46" font-weight="400">部署：受控操作工具、智能体容器</text>
+<text x="1015" y="380" font-size="24" fill="#172a46" font-weight="400">提供：健康检查、状态、日志</text>
+<rect x="420" y="555" width="550" height="235" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="420" y="555" width="8" height="235" rx="4" fill="#2563eb"/>
+<text x="445" y="598" font-size="29" fill="#2563eb" font-weight="700">47 · 管理中心 + 既有运行节点</text>
+<text x="445" y="641" font-size="23" fill="#172a46" font-weight="400">更新：GenB 后端 JAR、部署任务</text>
+<text x="445" y="678" font-size="23" fill="#172a46" font-weight="400">新增：网关鉴权服务、专用 Redis</text>
+<text x="445" y="715" font-size="23" fill="#172a46" font-weight="400">保留：PostgreSQL、既有智能体</text>
+<text x="445" y="752" font-size="23" fill="#172a46" font-weight="400">管理：节点、权限、材料、路由版本</text>
+<rect x="1060" y="580" width="480" height="185" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="1060" y="580" width="8" height="185" rx="4" fill="#b65a12"/>
+<text x="1085" y="623" font-size="29" fill="#b65a12" font-weight="700">两条链路分别连通</text>
+<text x="1085" y="666" font-size="22" fill="#172a46" font-weight="400">使用：18 → 目标智能体业务端口</text>
+<text x="1085" y="703" font-size="22" fill="#172a46" font-weight="400">部署：47 → 节点受控 SSH/SFTP</text>
+<text x="1085" y="740" font-size="22" fill="#172a46" font-weight="400">47 本机智能体也可作为访问目标</text>
+<path d="M 340 305 L 420 305" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#blue)"/>
+<path d="M 860 305 L 990 305" fill="none" stroke="#087f70" stroke-width="3" marker-end="url(#green)"/>
+<text x="886" y="276" font-size="20" fill="#087f70" font-weight="400">业务流</text>
+<path d="M 620 440 L 620 555" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#blue)"/>
+<text x="644" y="498" font-size="21" fill="#2563eb" font-weight="400">管理操作 / 权限检查</text>
+<path d="M970 676 L1016 676 L1016 479 L1260 479 L1260 440" fill="none" stroke="#b65a12" stroke-width="3" marker-end="url(#orange)"/>
+<text x="1050" y="522" font-size="21" fill="#b65a12" font-weight="400">部署文件与操作</text>
+<text x="60" y="861" font-size="19" fill="#556980" font-weight="400">蓝色：平台与访问    绿色：智能体运行    橙色：部署管理 / 待核验事项</text>
+</g></svg>

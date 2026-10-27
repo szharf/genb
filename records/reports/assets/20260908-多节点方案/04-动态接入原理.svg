@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="新增智能体：增加一条记录，网关自动认识它"><defs><marker id="blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker><marker id="green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#087f70"/></marker><marker id="orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#b65a12"/></marker><marker id="ink" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#172a46"/></marker><marker id="muted" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#556980"/></marker></defs><rect width="1600" height="900" fill="#f3f6fb"/><g font-family="Microsoft YaHei, PingFang SC, sans-serif">
+<text x="60" y="49" font-size="18" fill="#556980" font-weight="600">GENB · 架构讲解 / 04     2026-09-08 · 规划示意，尚未实施</text>
+<text x="60" y="112" font-size="42" fill="#172a46" font-weight="700">新增智能体：增加一条记录，网关自动认识它</text>
+<text x="60" y="157" font-size="23" fill="#556980" font-weight="400">网关保存通用规则；GenB 维护并发布“智能体 → 运行实例”的通讯录。</text>
+<rect x="60" y="230" width="500" height="290" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="60" y="230" width="8" height="290" rx="4" fill="#2563eb"/>
+<text x="85" y="273" font-size="29" fill="#2563eb" font-weight="700">47 · GenB 发布配置</text>
+<text x="85" y="316" font-size="23" fill="#172a46" font-weight="400">版本 100：OAG → 节点 A:8052</text>
+<text x="85" y="353" font-size="23" fill="#172a46" font-weight="400">版本 101：新增审单 → 节点 B:8060</text>
+<text x="85" y="390" font-size="23" fill="#172a46" font-weight="400">版本 102：OAG 改到节点 C:8052</text>
+<text x="85" y="427" font-size="23" fill="#172a46" font-weight="400"></text>
+<text x="85" y="464" font-size="23" fill="#172a46" font-weight="400">配置含：智能体、端点、身份模式</text>
+<text x="85" y="501" font-size="23" fill="#172a46" font-weight="400">独立权限体系仍检查谁可以访问</text>
+<rect x="660" y="230" width="390" height="290" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="660" y="230" width="8" height="290" rx="4" fill="#2563eb"/>
+<text x="685" y="273" font-size="29" fill="#2563eb" font-weight="700">网关 · 自动更新</text>
+<text x="685" y="316" font-size="23" fill="#172a46" font-weight="400">发现新版本</text>
+<text x="685" y="353" font-size="23" fill="#172a46" font-weight="400">验证目标节点获准访问</text>
+<text x="685" y="390" font-size="23" fill="#172a46" font-weight="400">整体应用路由表</text>
+<text x="685" y="427" font-size="23" fill="#172a46" font-weight="400">回报已应用版本</text>
+<text x="685" y="464" font-size="23" fill="#172a46" font-weight="400"></text>
+<text x="685" y="501" font-size="23" fill="#172a46" font-weight="400">无需为每个智能体写代码</text>
+<rect x="1150" y="230" width="390" height="290" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="1150" y="230" width="8" height="290" rx="4" fill="#087f70"/>
+<text x="1175" y="273" font-size="29" fill="#087f70" font-weight="700">Nginx · 通用代理</text>
+<text x="1175" y="316" font-size="23" fill="#172a46" font-weight="400">匹配 /agents/{agentId}/</text>
+<text x="1175" y="353" font-size="23" fill="#172a46" font-weight="400">向网关查询访问决定</text>
+<text x="1175" y="390" font-size="23" fill="#172a46" font-weight="400">转发到获准目标</text>
+<text x="1175" y="427" font-size="23" fill="#172a46" font-weight="400"></text>
+<text x="1175" y="464" font-size="23" fill="#172a46" font-weight="400">OAG、审单共用同一规则</text>
+<text x="1175" y="501" font-size="23" fill="#172a46" font-weight="400">不逐个增加 location</text>
+<path d="M 560 375 L 660 375" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#blue)"/>
+<path d="M 1050 375 L 1150 375" fill="none" stroke="#2563eb" stroke-width="3" marker-end="url(#blue)"/>
+<rect x="60" y="585" width="1480" height="195" rx="18" fill="white" stroke="#d9e3ef" stroke-width="2"/><rect x="60" y="585" width="8" height="195" rx="4" fill="#b65a12"/>
+<text x="85" y="628" font-size="29" fill="#b65a12" font-weight="700">现有代码必须先补齐的三点</text>
+<text x="85" y="671" font-size="24" fill="#172a46" font-weight="400">① 普通智能体可以独立发布，不要求先绑定记忆、推理等核心组件。</text>
+<text x="85" y="708" font-size="24" fill="#172a46" font-weight="400">② 允许接入的服务器地址可以动态更新，但必须先经过授权和检查。</text>
+<text x="85" y="745" font-size="24" fill="#172a46" font-weight="400">③ 用户入口与实际运行地址分开，确认网关已更新后才显示发布生效。</text>
+<text x="60" y="861" font-size="19" fill="#556980" font-weight="400">蓝色：平台与访问    绿色：智能体运行    橙色：部署管理 / 待核验事项</text>
+</g></svg>
